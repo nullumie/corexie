@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.github.nullumie.corexie</groupId>
+    <artifactId>corexie</artifactId>
+    <version>${revision}${changelist}</version>
+  </parent>
+
+  <properties>
+    <skipPublishing>true</skipPublishing>
+    <license.file>license-mit.txt</license.file>
+    <licenseHeader.file>license-header-mit.txt</licenseHeader.file>
+    <maven.install.skip>true</maven.install.skip>
+  </properties>
+
+  <name>Corexie: example</name>
+  <dependencies>
+    <dependency>
+      <groupId>io.github.nullumie.corexie</groupId>
+      <artifactId>corexie-core</artifactId>
+      <version>${revision}${changelist}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+    </dependency>
+  </dependencies>
+  <artifactId>corexie-example</artifactId>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+</project>

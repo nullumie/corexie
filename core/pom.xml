@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.github.nullumie.corexie</groupId>
+    <artifactId>corexie</artifactId>
+    <version>${revision}${changelist}</version>
+  </parent>
+
+  <name>Corexie: core</name>
+  <description>A clean foundation for predictable Java applications.</description>
+  <artifactId>corexie-core</artifactId>
+  <packaging>jar</packaging>
+
+  <properties>
+    <license.file>license-lgpl.txt</license.file>
+    <licenseHeader.file>license-header-lgpl.txt</licenseHeader.file>
+    <maven.install.skip>false</maven.install.skip>
+  </properties>
+
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License v3.0 only</name>
+      <url>https://www.gnu.org/licenses/lgpl-3.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.zafarkhaja</groupId>
+      <artifactId>java-semver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>
