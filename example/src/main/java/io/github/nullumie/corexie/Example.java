@@ -60,7 +60,6 @@ public final class Example extends Application {
     @Override
     protected void onException(@NotNull Throwable throwable) {
         getLogger().info("EXCEPTION: {}", throwable.getMessage());
-        shutdown();
     }
 
     static void main(String[] args) {
