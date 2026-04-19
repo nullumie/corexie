@@ -83,7 +83,7 @@ public abstract class Application {
     }
 
     public void shutdown() {
-        if (state == State.INITIALIZED || state == State.SHUTDOWN) return;
+        if (state == State.INITIALIZED || state == State.SHUTDOWN || state == State.FAILED) return;
         state = State.SHUTTING;
     }
 
