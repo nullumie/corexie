@@ -89,46 +89,47 @@ public abstract class Application {
 
     protected void run() {
         assertOnThread();
-
         if (isAlive()) return;
 
         instance = this;
-
-        thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-
         String oldThreadName = thread.getName();
-        thread.setName(getName().toLowerCase() + "-main");
-
-        state = State.STARTING;
 
         try {
-            onStartup();
-        } catch (Exception e) {
-            lifecycleException("startup", e);
-        }
+            thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+            thread.setName(getName().toLowerCase() + "-main");
 
-        state = State.RUNNING;
-
-        try {
-            while (state == State.RUNNING) {
-                onExecute();
-            }
-        } catch (Exception e) {
-            lifecycleException("execute", e);
-        }
-
-        if (state == State.SHUTTING) {
+            state = State.STARTING;
             try {
-                onShutdown();
-                state = State.SHUTDOWN;
-            } catch (Exception e) {
-                lifecycleException("shutdown", e);
+                onStartup();
+            } catch (Throwable t) {
+                lifecycleException("startup", t);
+                return;
             }
+
+            state = State.RUNNING;
+            try {
+                while (state == State.RUNNING) {
+                    onExecute();
+                }
+            } catch (Throwable t) {
+                lifecycleException("execute", t);
+            }
+
+            if (state == State.SHUTTING) {
+                try {
+                    onShutdown();
+                    state = State.SHUTDOWN;
+                } catch (Throwable t) {
+                    lifecycleException("shutdown", t);
+                }
+            }
+
+        } catch (Throwable fatal) {
+            lifecycleException("internal", fatal);
+        } finally {
+            thread.setName(oldThreadName);
+            thread.setUncaughtExceptionHandler(null);
         }
-
-        thread.setName(oldThreadName);
-
-        thread.setUncaughtExceptionHandler(null);
     }
 
     protected abstract void onStartup() throws Exception;
@@ -172,9 +173,8 @@ public abstract class Application {
 
     private @NotNull Thread.UncaughtExceptionHandler createUncaughtExceptionHandler() {
         return (t, e) -> {
-            assert instance != null;
-            logger.error("Fatal uncaught exception", e);
-            onException(e);
+            logger.error("FATAL: Uncaught exception in thread {}", t.getName(), e);
+            state = State.FAILED;
         };
     }
 
