@@ -19,6 +19,7 @@ package io.github.nullumie.corexie;
 
 import com.github.zafarkhaja.semver.Version;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,6 +86,18 @@ public abstract class Application {
     public void shutdown() {
         if (state == State.INITIALIZED || state == State.SHUTDOWN || state == State.FAILED) return;
         state = State.SHUTTING;
+        thread.interrupt();
+    }
+
+    protected void sleep(long timeout) throws InterruptedException {
+        assertOnThread();
+        try {
+            TimeUnit.NANOSECONDS.sleep(timeout);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (state == State.SHUTTING) return;
+            throw e;
+        }
     }
 
     protected void run() {

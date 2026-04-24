@@ -31,6 +31,7 @@ public final class Example extends Application {
 
     private int count = 0;
     private final int maxCount = 9;
+    private final long sleepTime = TimeUnit.SECONDS.toNanos(1);
 
     Example() {
         super("Example", Version.of(0, 1, 0, "-SNAPSHOT"));
@@ -49,7 +50,7 @@ public final class Example extends Application {
 
         count++;
 
-        TimeUnit.SECONDS.sleep(1);
+        sleep(sleepTime);
     }
 
     @Override
