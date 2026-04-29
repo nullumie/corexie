@@ -51,6 +51,7 @@ public abstract class Application {
     private final @NotNull Thread thread;
     private final @NotNull Logger logger;
     private final @NotNull Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
+    private volatile long interval;
 
     private volatile @NotNull State state = State.INITIALIZED;
 
@@ -58,7 +59,8 @@ public abstract class Application {
             @NotNull String name,
             @NotNull Version version,
             @NotNull String logPath,
-            @NotNull LogMode logMode) {
+            @NotNull LogMode logMode,
+            long interval) {
         System.setProperty(LOG_PATH_PROPERTY, logPath.isBlank() ? "logs" : logPath);
         System.setProperty(LOG_MODE_PROPERTY, logMode.name().toLowerCase());
 
@@ -67,6 +69,8 @@ public abstract class Application {
         this.thread = Thread.currentThread();
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
+
+        this.interval = validateInterval(interval);
     }
 
     public @NotNull String getName() {
@@ -96,6 +100,16 @@ public abstract class Application {
         } catch (Exception e) {
             return LogMode.NONE;
         }
+    }
+
+    public long getInterval() {
+        return interval;
+    }
+
+    public long setInterval(long interval) {
+        long oldInterval = this.interval;
+        this.interval = validateInterval(interval);
+        return oldInterval;
     }
 
     public boolean isAlive() {
@@ -145,7 +159,12 @@ public abstract class Application {
             state = State.RUNNING;
             try {
                 while (state == State.RUNNING) {
+                    long startTime = System.nanoTime();
                     onExecute();
+                    long elapsedTime = System.nanoTime() - startTime;
+                    if (elapsedTime >= interval) continue;
+                    long sleepTime = interval - elapsedTime;
+                    sleep(sleepTime);
                 }
             } catch (Throwable t) {
                 lifecycleException("execute", t);
@@ -230,5 +249,10 @@ public abstract class Application {
                             LogManager.shutdown();
                         });
         Runtime.getRuntime().addShutdownHook(shutdownHookThread);
+    }
+
+    private static long validateInterval(long interval) {
+        if (interval >= 0) return interval;
+        throw new IllegalArgumentException("Interval must not be negative");
     }
 }

@@ -32,10 +32,14 @@ public final class Example extends Application {
 
     private int count = 0;
     private final int maxCount = 9;
-    private final long sleepTime = TimeUnit.SECONDS.toNanos(1);
 
     Example() {
-        super("Example", Version.of(0, 1, 0, "SNAPSHOT"), "logs", LogMode.FILE);
+        super(
+                "Example",
+                Version.of(0, 1, 0, "SNAPSHOT"),
+                "logs",
+                LogMode.FILE,
+                TimeUnit.SECONDS.toNanos(1));
     }
 
     @Override
@@ -51,8 +55,6 @@ public final class Example extends Application {
         if (count == maxCount) shutdown();
 
         count++;
-
-        sleep(sleepTime);
     }
 
     @Override
