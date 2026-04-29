@@ -41,6 +41,9 @@ public abstract class Application {
         setupShutdownHook();
     }
 
+    private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
+    private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
+
     private static @Nullable Application instance;
 
     private final @NotNull String name;
@@ -51,7 +54,14 @@ public abstract class Application {
 
     private volatile @NotNull State state = State.INITIALIZED;
 
-    protected Application(@NotNull String name, @NotNull Version version) {
+    protected Application(
+            @NotNull String name,
+            @NotNull Version version,
+            @NotNull String logPath,
+            @NotNull LogMode logMode) {
+        System.setProperty(LOG_PATH_PROPERTY, logPath.isBlank() ? "logs" : logPath);
+        System.setProperty(LOG_MODE_PROPERTY, logMode.name().toLowerCase());
+
         this.name = name;
         this.version = version;
         this.thread = Thread.currentThread();
@@ -73,6 +83,19 @@ public abstract class Application {
 
     public @NotNull State getState() {
         return state;
+    }
+
+    public @NotNull String getLogPath() {
+        return System.getProperty(LOG_PATH_PROPERTY);
+    }
+
+    public @NotNull LogMode getLogMode() {
+        String mode = System.getProperty(LOG_MODE_PROPERTY);
+        try {
+            return LogMode.valueOf(mode.toUpperCase());
+        } catch (Exception e) {
+            return LogMode.NONE;
+        }
     }
 
     public boolean isAlive() {

@@ -24,6 +24,7 @@
 package io.github.nullumie.corexie;
 
 import com.github.zafarkhaja.semver.Version;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,12 +35,13 @@ public final class Example extends Application {
     private final long sleepTime = TimeUnit.SECONDS.toNanos(1);
 
     Example() {
-        super("Example", Version.of(0, 1, 0, "-SNAPSHOT"));
+        super("Example", Version.of(0, 1, 0, "SNAPSHOT"), "logs", LogMode.FILE);
     }
 
     @Override
     protected void onStartup() throws Exception {
         getLogger().info("STARTUP");
+        printInfo();
     }
 
     @Override
@@ -61,6 +63,15 @@ public final class Example extends Application {
     @Override
     protected void onException(@NotNull Throwable throwable) {
         getLogger().info("EXCEPTION: {}", throwable.getMessage());
+    }
+
+    private void printInfo() {
+        getLogger().info("------------------------------");
+        getLogger().info("Name: {}", getName());
+        getLogger().info("Version: {}", getVersion());
+        getLogger().info("LogPath: {}", getLogPath());
+        getLogger().info("LogMode: {}", getLogMode().toString().toLowerCase(Locale.ROOT));
+        getLogger().info("------------------------------");
     }
 
     static void main(String[] args) {

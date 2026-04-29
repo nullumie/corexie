@@ -6,10 +6,38 @@
                     pattern="%d{HH:mm:ss.SSS} - [%t/%level] - %style{(%logger{36})}{blue,bold} - %highlight{%msg}{ERROR=red, WARN=yellow, INFO=default, DEBUG=default}%n"
                     disableAnsi="false"/>
         </Console>
+
+        <Routing name="Routing">
+            <Routes pattern="${sys:corexie.log.mode}">
+
+                <Route key="rolling">
+                    <RollingFile name="RollingFile"
+                                 fileName="${sys:corexie.log.path}/latest.log"
+                                 filePattern="${sys:corexie.log.path}/%d{yyyy-MM-dd_HH-mm-ss}.log">
+                        <PatternLayout pattern="%d{HH:mm:ss.SSS} - [%t/%level] - (%logger{36}) - %msg%n"/>
+                        <Policies>
+                            <OnStartupTriggeringPolicy />
+                        </Policies>
+                    </RollingFile>
+                </Route>
+
+                <Route key="file">
+                    <File name="SimpleFile" fileName="${sys:corexie.log.path}/latest.log" append="false">
+                        <PatternLayout pattern="%d{HH:mm:ss.SSS} - [%t/%level] - (%logger{36}) - %msg%n"/>
+                    </File>
+                </Route>
+
+                <Route key="none">
+                    <Null name="None"/>
+                </Route>
+            </Routes>
+        </Routing>
     </Appenders>
+
     <Loggers>
         <Root level="info">
             <AppenderRef ref="SysOut"/>
+            <AppenderRef ref="Routing"/>
         </Root>
     </Loggers>
 </Configuration>
