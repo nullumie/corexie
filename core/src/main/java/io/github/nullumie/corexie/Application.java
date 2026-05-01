@@ -19,7 +19,7 @@ package io.github.nullumie.corexie;
 
 import com.github.zafarkhaja.semver.Version;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +32,9 @@ public abstract class Application {
         INITIALIZED,
         STARTING,
         RUNNING,
+        RESUMING,
+        PAUSING,
+        PAUSED,
         SHUTTING,
         SHUTDOWN,
         FAILED
@@ -113,7 +116,48 @@ public abstract class Application {
     }
 
     public boolean isAlive() {
-        return state == State.STARTING || state == State.RUNNING || state == State.SHUTTING;
+        return state == State.STARTING
+                || state == State.RUNNING
+                || state == State.PAUSING
+                || state == State.PAUSED
+                || state == State.RESUMING
+                || state == State.SHUTTING;
+    }
+
+    public boolean isActive() {
+        return state == State.STARTING
+                || state == State.RUNNING
+                || state == State.PAUSING
+                || state == State.PAUSED
+                || state == State.RESUMING;
+    }
+
+    public boolean isRunning() {
+        return state == State.RUNNING;
+    }
+
+    public boolean isPausing() {
+        return state == State.PAUSING;
+    }
+
+    public boolean isPaused() {
+        return state == State.PAUSING;
+    }
+
+    public boolean isResuming() {
+        return state == State.RESUMING;
+    }
+
+    public boolean isShutting() {
+        return state == State.SHUTTING;
+    }
+
+    public boolean isShutdown() {
+        return state == State.SHUTDOWN || state == State.FAILED;
+    }
+
+    public boolean isFailed() {
+        return state == State.FAILED;
     }
 
     public boolean isOnThread() {
@@ -126,14 +170,30 @@ public abstract class Application {
         thread.interrupt();
     }
 
+    public void resume() {
+        if (state != State.PAUSING && state != State.PAUSED) return;
+        state = State.RESUMING;
+        if (isOnThread()) return;
+        thread.interrupt();
+    }
+
+    public void pause() {
+        if (state != State.RUNNING) return;
+        state = State.PAUSING;
+        if (isOnThread()) return;
+        thread.interrupt();
+    }
+
     protected void sleep(long timeout) throws InterruptedException {
         assertOnThread();
-        try {
-            TimeUnit.NANOSECONDS.sleep(timeout);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            if (state == State.SHUTTING) return;
-            throw e;
+        if (timeout == 0) return;
+        LockSupport.parkNanos(timeout);
+        if (Thread.interrupted()) {
+            if (state == State.SHUTTING
+                    || state == State.PAUSING
+                    || state == State.PAUSED
+                    || state == State.RESUMING) return;
+            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
         }
     }
 
@@ -157,17 +217,45 @@ public abstract class Application {
             }
 
             state = State.RUNNING;
-            try {
-                while (state == State.RUNNING) {
-                    long startTime = System.nanoTime();
-                    onExecute();
-                    long elapsedTime = System.nanoTime() - startTime;
-                    if (elapsedTime >= interval) continue;
-                    long sleepTime = interval - elapsedTime;
-                    sleep(sleepTime);
+            while (isActive()) {
+                switch (state) {
+                    case PAUSING:
+                        try {
+                            onPause();
+                        } catch (Throwable t) {
+                            lifecycleException("pause", t);
+                        }
+                        if (state != State.PAUSING) break;
+                        state = State.PAUSED;
+                        break;
+                    case RESUMING:
+                        try {
+                            onResume();
+                        } catch (Throwable t) {
+                            lifecycleException("resume", t);
+                        }
+                        if (state != State.RESUMING) break;
+                        state = State.RUNNING;
+                        break;
+                    case RUNNING:
+                        long startTime = System.nanoTime();
+                        try {
+                            onExecute();
+                        } catch (Throwable t) {
+                            lifecycleException("execute", t);
+                        }
+
+                        if (state != State.RUNNING) break;
+
+                        long elapsedTime = System.nanoTime() - startTime;
+                        if (elapsedTime >= interval) continue;
+                        long sleepTime = interval - elapsedTime;
+                        sleep(sleepTime);
+                        break;
+                    case PAUSED:
+                        sleep(Long.MAX_VALUE);
+                        break;
                 }
-            } catch (Throwable t) {
-                lifecycleException("execute", t);
             }
 
             if (state == State.SHUTTING) {
@@ -190,6 +278,10 @@ public abstract class Application {
     protected abstract void onStartup() throws Exception;
 
     protected abstract void onExecute() throws Exception;
+
+    protected abstract void onPause() throws Exception;
+
+    protected abstract void onResume() throws Exception;
 
     protected abstract void onShutdown() throws Exception;
 
@@ -253,6 +345,6 @@ public abstract class Application {
 
     private static long validateInterval(long interval) {
         if (interval >= 0) return interval;
-        throw new IllegalArgumentException("Interval must not be negative");
+        throw new IllegalArgumentException("Interval must not be negative: " + interval);
     }
 }

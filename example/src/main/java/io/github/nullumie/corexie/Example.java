@@ -31,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 public final class Example extends Application {
 
     private int count = 0;
-    private final int maxCount = 9;
 
     Example() {
         super(
@@ -52,9 +51,25 @@ public final class Example extends Application {
     protected void onExecute() throws Exception {
         getLogger().info("EXECUTE #{}", count);
 
+        int maxCount = 9;
         if (count == maxCount) shutdown();
 
+        if (count == 4) {
+            pause();
+        }
+
         count++;
+    }
+
+    @Override
+    protected void onPause() throws Exception {
+        getLogger().info("PAUSE");
+        resume();
+    }
+
+    @Override
+    protected void onResume() throws Exception {
+        getLogger().info("RESUME");
     }
 
     @Override
