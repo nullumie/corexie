@@ -185,7 +185,7 @@ public abstract class Application {
     }
 
     protected void sleep(long timeout) throws InterruptedException {
-        assertOnThread();
+        ensureOnThread();
         if (timeout == 0) return;
         LockSupport.parkNanos(timeout);
         if (Thread.interrupted()) {
@@ -198,7 +198,7 @@ public abstract class Application {
     }
 
     protected void run() {
-        assertOnThread();
+        ensureOnThread();
         if (isAlive()) return;
 
         instance = this;
@@ -291,7 +291,7 @@ public abstract class Application {
         return Optional.ofNullable(instance);
     }
 
-    protected void assertOnThread() {
+    protected void ensureOnThread() {
         if (isOnThread()) return;
 
         Thread current = Thread.currentThread();
