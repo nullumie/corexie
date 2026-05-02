@@ -164,6 +164,10 @@ public abstract class Application {
         return Thread.currentThread() == thread;
     }
 
+    public boolean isOffThread() {
+        return Thread.currentThread() != thread;
+    }
+
     public void shutdown() {
         if (state == State.INITIALIZED || state == State.SHUTDOWN || state == State.FAILED) return;
         state = State.SHUTTING;
@@ -293,9 +297,7 @@ public abstract class Application {
 
     protected void ensureOnThread() {
         if (isOnThread()) return;
-
         Thread current = Thread.currentThread();
-
         throw new WrongThreadException(
                 String.format(
                         "Invalid thread access: method must be called on '%s' (id=%d) but was '%s' (id=%d)",
@@ -303,6 +305,14 @@ public abstract class Application {
                         thread.threadId(),
                         current.getName(),
                         current.threadId()));
+    }
+
+    protected void ensureOffThread() {
+        if (isOffThread()) return;
+        throw new WrongThreadException(
+                String.format(
+                        "Invalid thread access: method must not be called on '%s' (id=%d)",
+                        thread.getName(), thread.threadId()));
     }
 
     private void lifecycleException(@NotNull String lifecycle, @NotNull Throwable throwable) {
