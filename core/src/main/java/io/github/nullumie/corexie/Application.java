@@ -143,8 +143,11 @@ public abstract class Application {
         return state == State.IDLE || state == State.PAUSED;
     }
 
-    public boolean isNonOperational() {
-        return state == State.INITIALIZED || state == State.SHUTDOWN || state == State.FAILED;
+    public boolean isInoperable() {
+        return state == State.INITIALIZED
+                || state == State.SHUTTING
+                || state == State.SHUTDOWN
+                || state == State.FAILED;
     }
 
     public boolean isRunning() {
@@ -188,7 +191,7 @@ public abstract class Application {
     }
 
     public void shutdown() {
-        if (isNonOperational()) return;
+        if (isInoperable()) return;
         state = State.SHUTTING;
         thread.interrupt();
     }
