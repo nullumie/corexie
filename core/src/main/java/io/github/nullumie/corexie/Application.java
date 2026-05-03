@@ -192,15 +192,13 @@ public abstract class Application {
     public void resume() {
         if (state != State.PAUSING && state != State.PAUSED) return;
         state = State.RESUMING;
-        if (isOnThread()) return;
-        wakeup();
+        if (isOffThread()) wakeup();
     }
 
     public void pause() {
         if (state != State.RUNNING) return;
         state = State.PAUSING;
-        if (isOnThread()) return;
-        wakeup();
+        if (isOffThread()) wakeup();
     }
 
     protected void sleep(long timeout) throws InterruptedException {
@@ -218,6 +216,12 @@ public abstract class Application {
         }
         if (Thread.interrupted())
             throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
+    }
+
+    protected void wakeup() {
+        ensureOffThread();
+        if (!isInactive()) return;
+        LockSupport.unpark(thread);
     }
 
     protected void run() {
@@ -322,11 +326,6 @@ public abstract class Application {
 
     public static @NotNull Optional<Application> getApplication() {
         return Optional.ofNullable(instance);
-    }
-
-    private void wakeup() {
-        if (!isInactive()) return;
-        LockSupport.unpark(thread);
     }
 
     protected void ensureOnThread() {
