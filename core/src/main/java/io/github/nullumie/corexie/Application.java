@@ -30,6 +30,7 @@ public abstract class Application {
 
     public enum State {
         INITIALIZED,
+        IDLE,
         STARTING,
         RUNNING,
         RESUMING,
@@ -121,19 +122,28 @@ public abstract class Application {
                 || state == State.PAUSING
                 || state == State.PAUSED
                 || state == State.RESUMING
-                || state == State.SHUTTING;
+                || state == State.SHUTTING
+                || state == State.IDLE;
     }
 
     public boolean isActive() {
         return state == State.STARTING
                 || state == State.RUNNING
                 || state == State.PAUSING
-                || state == State.PAUSED
-                || state == State.RESUMING;
+                || state == State.RESUMING
+                || state == State.SHUTTING;
+    }
+
+    public boolean isInactive() {
+        return state == State.IDLE || state == State.PAUSED;
     }
 
     public boolean isRunning() {
         return state == State.RUNNING;
+    }
+
+    public boolean isIdle() {
+        return state == State.IDLE;
     }
 
     public boolean isPausing() {
@@ -153,7 +163,7 @@ public abstract class Application {
     }
 
     public boolean isShutdown() {
-        return state == State.SHUTDOWN || state == State.FAILED;
+        return state == State.SHUTDOWN;
     }
 
     public boolean isFailed() {
@@ -178,27 +188,31 @@ public abstract class Application {
         if (state != State.PAUSING && state != State.PAUSED) return;
         state = State.RESUMING;
         if (isOnThread()) return;
-        thread.interrupt();
+        wakeup();
     }
 
     public void pause() {
         if (state != State.RUNNING) return;
         state = State.PAUSING;
         if (isOnThread()) return;
-        thread.interrupt();
+        wakeup();
     }
 
     protected void sleep(long timeout) throws InterruptedException {
         ensureOnThread();
         if (timeout == 0) return;
-        LockSupport.parkNanos(timeout);
-        if (Thread.interrupted()) {
-            if (state == State.SHUTTING
-                    || state == State.PAUSING
-                    || state == State.PAUSED
-                    || state == State.RESUMING) return;
-            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
+        State lastState = state;
+        if (isActive()) {
+            if (!isPausing()) {
+                state = State.IDLE;
+            }
+            LockSupport.parkNanos(timeout);
+            if (isIdle()) {
+                state = lastState;
+            }
         }
+        if (Thread.interrupted())
+            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
     }
 
     protected void run() {
@@ -221,7 +235,9 @@ public abstract class Application {
             }
 
             state = State.RUNNING;
-            while (isActive()) {
+            while (isAlive()) {
+                if (isShutting()) break;
+
                 switch (state) {
                     case PAUSING:
                         try {
@@ -254,10 +270,18 @@ public abstract class Application {
                         long elapsedTime = System.nanoTime() - startTime;
                         if (elapsedTime >= interval) continue;
                         long sleepTime = interval - elapsedTime;
-                        sleep(sleepTime);
+
+                        try {
+                            sleep(sleepTime);
+                        } catch (InterruptedException _) {
+                        }
+
                         break;
                     case PAUSED:
-                        sleep(Long.MAX_VALUE);
+                        try {
+                            sleep(Long.MAX_VALUE);
+                        } catch (InterruptedException _) {
+                        }
                         break;
                 }
             }
@@ -293,6 +317,11 @@ public abstract class Application {
 
     public static @NotNull Optional<Application> getApplication() {
         return Optional.ofNullable(instance);
+    }
+
+    private void wakeup() {
+        if (!isInactive()) return;
+        LockSupport.unpark(thread);
     }
 
     protected void ensureOnThread() {
