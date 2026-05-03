@@ -65,6 +65,8 @@ public abstract class Application {
             @NotNull String logPath,
             @NotNull LogMode logMode,
             long interval) {
+        ensureValidInterval(interval);
+
         System.setProperty(LOG_PATH_PROPERTY, logPath.isBlank() ? "logs" : logPath);
         System.setProperty(LOG_MODE_PROPERTY, logMode.name().toLowerCase());
 
@@ -74,7 +76,7 @@ public abstract class Application {
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
 
-        this.interval = validateInterval(interval);
+        this.interval = interval;
     }
 
     public @NotNull String getName() {
@@ -111,8 +113,11 @@ public abstract class Application {
     }
 
     public long setInterval(long interval) {
+        ensureValidInterval(interval);
+        if (interval == this.interval) return this.interval;
         long oldInterval = this.interval;
-        this.interval = validateInterval(interval);
+        this.interval = interval;
+        if (isOffThread()) wakeup();
         return oldInterval;
     }
 
@@ -382,8 +387,8 @@ public abstract class Application {
         Runtime.getRuntime().addShutdownHook(shutdownHookThread);
     }
 
-    private static long validateInterval(long interval) {
-        if (interval >= 0) return interval;
+    private static void ensureValidInterval(long interval) {
+        if (interval >= 0) return;
         throw new IllegalArgumentException("Interval must not be negative: " + interval);
     }
 }
