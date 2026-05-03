@@ -163,7 +163,7 @@ public abstract class Application {
     }
 
     public boolean isPaused() {
-        return state == State.PAUSING;
+        return state == State.PAUSED;
     }
 
     public boolean isResuming() {
