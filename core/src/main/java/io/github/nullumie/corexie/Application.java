@@ -52,7 +52,7 @@ public abstract class Application {
 
     private final @NotNull String name;
     private final @NotNull Version version;
-    private final @NotNull Thread thread;
+    private @Nullable Thread thread;
     private final @NotNull Logger logger;
     private final @NotNull Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
     private volatile long interval;
@@ -65,14 +65,13 @@ public abstract class Application {
             @NotNull String logPath,
             @NotNull LogMode logMode,
             long interval) {
-        ensureValidInterval(interval);
+
+        this.name = name;
+        this.version = version;
 
         System.setProperty(LOG_PATH_PROPERTY, logPath.isBlank() ? "logs" : logPath);
         System.setProperty(LOG_MODE_PROPERTY, logMode.name().toLowerCase());
 
-        this.name = name;
-        this.version = version;
-        this.thread = Thread.currentThread();
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
 
@@ -193,6 +192,7 @@ public abstract class Application {
     public void shutdown() {
         if (isInoperable()) return;
         state = State.SHUTTING;
+        assert thread != null;
         thread.interrupt();
     }
 
@@ -206,6 +206,48 @@ public abstract class Application {
         if (state != State.RUNNING) return;
         state = State.PAUSING;
         if (isOffThread()) wakeup();
+    }
+
+    public void join() throws InterruptedException {
+        if (thread == null || isOnThread()) return;
+        thread.join();
+    }
+
+    public void start() {
+        if (isAlive()) return;
+        instance = this;
+        thread =
+                new Thread(
+                        () -> {
+                            try {
+                                Thread.currentThread()
+                                        .setUncaughtExceptionHandler(uncaughtExceptionHandler);
+                                _run();
+                            } catch (Throwable fatal) {
+                                lifecycleException("internal", fatal);
+                            }
+                            thread = null;
+                        },
+                        formatThreadName(getName()));
+        thread.start();
+    }
+
+    public void run() {
+        if (isAlive()) return;
+        instance = this;
+        thread = Thread.currentThread();
+        String oldThreadName = thread.getName();
+        try {
+            thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+            thread.setName(formatThreadName(getName()));
+            _run();
+        } catch (Throwable fatal) {
+            lifecycleException("internal", fatal);
+        } finally {
+            thread.setName(oldThreadName);
+            thread.setUncaughtExceptionHandler(null);
+        }
+        thread = null;
     }
 
     protected void sleep(long timeout) throws InterruptedException {
@@ -231,91 +273,74 @@ public abstract class Application {
         LockSupport.unpark(thread);
     }
 
-    protected void run() {
-        ensureOnThread();
-        if (isAlive()) return;
-
-        instance = this;
-        String oldThreadName = thread.getName();
-
+    private void _run() {
+        state = State.STARTING;
         try {
-            thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-            thread.setName(getName().toLowerCase() + "-main");
+            onStartup();
+        } catch (Throwable t) {
+            lifecycleException("startup", t);
+            return;
+        }
 
-            state = State.STARTING;
+        state = State.RUNNING;
+        while (isAlive()) {
+            if (isShutting()) break;
+
+            switch (state) {
+                case PAUSING:
+                    try {
+                        onPause();
+                    } catch (Throwable t) {
+                        lifecycleException("pause", t);
+                    }
+                    if (state != State.PAUSING) break;
+                    state = State.PAUSED;
+                    break;
+                case RESUMING:
+                    try {
+                        onResume();
+                    } catch (Throwable t) {
+                        lifecycleException("resume", t);
+                    }
+                    if (state != State.RESUMING) break;
+                    state = State.RUNNING;
+                    break;
+                case RUNNING:
+                    long startTime = System.nanoTime();
+                    try {
+                        onExecute();
+                    } catch (Throwable t) {
+                        lifecycleException("execute", t);
+                    }
+
+                    if (state != State.RUNNING) break;
+
+                    long elapsedTime = System.nanoTime() - startTime;
+                    if (elapsedTime >= interval) continue;
+                    long sleepTime = interval - elapsedTime;
+
+                    try {
+                        sleep(sleepTime);
+                    } catch (InterruptedException _) {
+                    }
+
+                    break;
+                case PAUSED:
+                    try {
+                        sleep(Long.MAX_VALUE);
+                    } catch (InterruptedException _) {
+                    }
+                    break;
+            }
+        }
+
+        if (state == State.SHUTTING) {
             try {
-                onStartup();
+                onShutdown();
+                state = State.SHUTDOWN;
             } catch (Throwable t) {
-                lifecycleException("startup", t);
-                return;
+                lifecycleException("shutdown", t);
             }
-
-            state = State.RUNNING;
-            while (isAlive()) {
-                if (isShutting()) break;
-
-                switch (state) {
-                    case PAUSING:
-                        try {
-                            onPause();
-                        } catch (Throwable t) {
-                            lifecycleException("pause", t);
-                        }
-                        if (state != State.PAUSING) break;
-                        state = State.PAUSED;
-                        break;
-                    case RESUMING:
-                        try {
-                            onResume();
-                        } catch (Throwable t) {
-                            lifecycleException("resume", t);
-                        }
-                        if (state != State.RESUMING) break;
-                        state = State.RUNNING;
-                        break;
-                    case RUNNING:
-                        long startTime = System.nanoTime();
-                        try {
-                            onExecute();
-                        } catch (Throwable t) {
-                            lifecycleException("execute", t);
-                        }
-
-                        if (state != State.RUNNING) break;
-
-                        long elapsedTime = System.nanoTime() - startTime;
-                        if (elapsedTime >= interval) continue;
-                        long sleepTime = interval - elapsedTime;
-
-                        try {
-                            sleep(sleepTime);
-                        } catch (InterruptedException _) {
-                        }
-
-                        break;
-                    case PAUSED:
-                        try {
-                            sleep(Long.MAX_VALUE);
-                        } catch (InterruptedException _) {
-                        }
-                        break;
-                }
-            }
-
-            if (state == State.SHUTTING) {
-                try {
-                    onShutdown();
-                    state = State.SHUTDOWN;
-                } catch (Throwable t) {
-                    lifecycleException("shutdown", t);
-                }
-            }
-
-        } catch (Throwable fatal) {
-            lifecycleException("internal", fatal);
-        } finally {
-            thread.setName(oldThreadName);
-            thread.setUncaughtExceptionHandler(null);
         }
     }
 
@@ -338,6 +363,7 @@ public abstract class Application {
     protected void ensureOnThread() {
         if (isOnThread()) return;
         Thread current = Thread.currentThread();
+        assert thread != null;
         throw new WrongThreadException(
                 String.format(
                         "Invalid thread access: method must be called on '%s' (id=%d) but was '%s' (id=%d)",
@@ -349,6 +375,7 @@ public abstract class Application {
 
     protected void ensureOffThread() {
         if (isOffThread()) return;
+        assert thread != null;
         throw new WrongThreadException(
                 String.format(
                         "Invalid thread access: method must not be called on '%s' (id=%d)",
@@ -385,12 +412,16 @@ public abstract class Application {
                                     || instance.state == State.SHUTDOWN) return;
                             instance.shutdown();
                             try {
-                                instance.thread.join();
+                                instance.join();
                             } catch (InterruptedException _) {
                             }
                             LogManager.shutdown();
                         });
         Runtime.getRuntime().addShutdownHook(shutdownHookThread);
+    }
+
+    private static @NotNull String formatThreadName(@NotNull String name) {
+        return name.toLowerCase() + "-main";
     }
 
     private static void ensureValidInterval(long interval) {
