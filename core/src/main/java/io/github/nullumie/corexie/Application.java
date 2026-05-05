@@ -164,7 +164,7 @@ public abstract class Application {
     }
 
     public void resume() {
-        if (state != State.PAUSING && state != State.PAUSED) return;
+        if (!isPausing() && !isPaused()) return;
         state = State.RESUMING;
         if (isOffThread()) wakeup();
     }
