@@ -18,7 +18,6 @@
 package io.github.nullumie.corexie;
 
 import com.github.zafarkhaja.semver.Version;
-import java.util.Optional;
 import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,8 +38,6 @@ public abstract class Application {
         SHUTDOWN,
         FAILED
     }
-
-    private static @Nullable Application instance;
 
     private final @NotNull String name;
     private final @NotNull Version version;
@@ -327,10 +324,6 @@ public abstract class Application {
     protected abstract void onShutdown() throws Exception;
 
     protected abstract void onException(@NotNull Throwable throwable);
-
-    public static @NotNull Optional<Application> getApplication() {
-        return Optional.ofNullable(instance);
-    }
 
     protected void ensureOnThread() {
         if (isOnThread()) return;
