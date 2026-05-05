@@ -33,12 +33,7 @@ public final class Example extends Application {
     private int count = 0;
 
     Example() {
-        super(
-                "Example",
-                Version.of(0, 1, 0, "SNAPSHOT"),
-                "logs",
-                LogMode.FILE,
-                TimeUnit.SECONDS.toNanos(1));
+        super("Example", Version.of(0, 1, 0, "SNAPSHOT"), TimeUnit.MILLISECONDS.toNanos(1000));
     }
 
     @Override
@@ -54,8 +49,16 @@ public final class Example extends Application {
         int maxCount = 9;
         if (count == maxCount) shutdown();
 
+        if (count == 2) {
+            setInterval(TimeUnit.MILLISECONDS.toNanos(500));
+        }
+
         if (count == 4) {
             pause();
+        }
+
+        if (count == 6) {
+            setInterval(TimeUnit.MILLISECONDS.toNanos(1500));
         }
 
         count++;
@@ -86,13 +89,15 @@ public final class Example extends Application {
         getLogger().info("------------------------------");
         getLogger().info("Name: {}", getName());
         getLogger().info("Version: {}", getVersion());
-        getLogger().info("LogPath: {}", getLogPath());
-        getLogger().info("LogMode: {}", getLogMode().toString().toLowerCase(Locale.ROOT));
+        getLogger().info("LogPath: {}", Corexie.getLogPath());
+        getLogger().info("LogMode: {}", Corexie.getLogMode().toString().toLowerCase(Locale.ROOT));
         getLogger().info("------------------------------");
     }
 
     static void main(String[] args) {
+        Corexie.initialize("logs", LogMode.FILE);
         Example example = new Example();
         example.run();
+        Corexie.shutdown();
     }
 }

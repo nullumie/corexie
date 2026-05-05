@@ -20,7 +20,6 @@ package io.github.nullumie.corexie;
 import com.github.zafarkhaja.semver.Version;
 import java.util.Optional;
 import java.util.concurrent.locks.LockSupport;
-import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -41,13 +40,6 @@ public abstract class Application {
         FAILED
     }
 
-    static {
-        setupShutdownHook();
-    }
-
-    private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
-    private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
-
     private static @Nullable Application instance;
 
     private final @NotNull String name;
@@ -59,19 +51,10 @@ public abstract class Application {
 
     private volatile @NotNull State state = State.INITIALIZED;
 
-    protected Application(
-            @NotNull String name,
-            @NotNull Version version,
-            @NotNull String logPath,
-            @NotNull LogMode logMode,
-            long interval) {
+    protected Application(@NotNull String name, @NotNull Version version, long interval) {
 
         this.name = name;
         this.version = version;
-
-        System.setProperty(LOG_PATH_PROPERTY, logPath.isBlank() ? "logs" : logPath);
-        System.setProperty(LOG_MODE_PROPERTY, logMode.name().toLowerCase());
-
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
 
@@ -92,19 +75,6 @@ public abstract class Application {
 
     public @NotNull State getState() {
         return state;
-    }
-
-    public @NotNull String getLogPath() {
-        return System.getProperty(LOG_PATH_PROPERTY);
-    }
-
-    public @NotNull LogMode getLogMode() {
-        String mode = System.getProperty(LOG_MODE_PROPERTY);
-        try {
-            return LogMode.valueOf(mode.toUpperCase());
-        } catch (Exception e) {
-            return LogMode.NONE;
-        }
     }
 
     public long getInterval() {
@@ -215,7 +185,7 @@ public abstract class Application {
 
     public void start() {
         if (isAlive()) return;
-        instance = this;
+        Corexie.addApplication(this);
         thread =
                 new Thread(
                         () -> {
@@ -227,6 +197,7 @@ public abstract class Application {
                                 lifecycleException("internal", fatal);
                             }
                             thread = null;
+                            Corexie.removeApplication(this);
                         },
                         formatThreadName(getName()));
         thread.start();
@@ -234,7 +205,7 @@ public abstract class Application {
 
     public void run() {
         if (isAlive()) return;
-        instance = this;
+        Corexie.addApplication(this);
         thread = Thread.currentThread();
         String oldThreadName = thread.getName();
         try {
@@ -246,8 +217,9 @@ public abstract class Application {
         } finally {
             thread.setName(oldThreadName);
             thread.setUncaughtExceptionHandler(null);
+            thread = null;
+            Corexie.removeApplication(this);
         }
-        thread = null;
     }
 
     protected void sleep(long timeout) throws InterruptedException {
@@ -400,24 +372,6 @@ public abstract class Application {
             logger.error("FATAL: Uncaught exception in thread {}", t.getName(), e);
             state = State.FAILED;
         };
-    }
-
-    private static void setupShutdownHook() {
-        System.setProperty("log4j.shutdownHookEnabled", "false");
-        Thread shutdownHookThread =
-                new Thread(
-                        () -> {
-                            if (instance == null
-                                    || instance.state == State.INITIALIZED
-                                    || instance.state == State.SHUTDOWN) return;
-                            instance.shutdown();
-                            try {
-                                instance.join();
-                            } catch (InterruptedException _) {
-                            }
-                            LogManager.shutdown();
-                        });
-        Runtime.getRuntime().addShutdownHook(shutdownHookThread);
     }
 
     private static @NotNull String formatThreadName(@NotNull String name) {
