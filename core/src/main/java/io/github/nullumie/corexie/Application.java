@@ -170,7 +170,7 @@ public abstract class Application {
     }
 
     public void pause() {
-        if (state != State.RUNNING) return;
+        if (isInoperable() || isPausing() || isPaused()) return;
         state = State.PAUSING;
         if (isOffThread()) wakeup();
     }
