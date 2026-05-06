@@ -49,13 +49,11 @@ public abstract class Application {
     private volatile @NotNull State state = State.INITIALIZED;
 
     protected Application(@NotNull String name, @NotNull Version version, long interval) {
-
         this.name = name;
         this.version = version;
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
-
-        this.interval = interval;
+        this.interval = validateInterval(interval);
     }
 
     public @NotNull String getName() {
@@ -79,7 +77,7 @@ public abstract class Application {
     }
 
     public long setInterval(long interval) {
-        ensureValidInterval(interval);
+        validateInterval(interval);
         if (interval == this.interval) return this.interval;
         long oldInterval = this.interval;
         this.interval = interval;
@@ -371,8 +369,8 @@ public abstract class Application {
         return name.toLowerCase() + "-main";
     }
 
-    private static void ensureValidInterval(long interval) {
-        if (interval >= 0) return;
+    private static long validateInterval(long interval) {
+        if (interval >= 0) return interval;
         throw new IllegalArgumentException("Interval must not be negative: " + interval);
     }
 }
