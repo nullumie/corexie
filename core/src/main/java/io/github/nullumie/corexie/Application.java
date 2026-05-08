@@ -208,21 +208,32 @@ public abstract class Application {
         Corexie.removeApplication(this);
     }
 
-    protected void sleep(long timeout) throws InterruptedException {
+    protected long sleep(long timeout) throws InterruptedException {
+        long startTime = System.nanoTime();
+
         ensureOnThread();
-        if (timeout == 0) return;
+
+        if (!isActive() || timeout == 0) return 0;
+
         State lastState = state;
-        if (isActive()) {
-            if (!isPausing()) {
-                state = State.IDLE;
-            }
-            LockSupport.parkNanos(timeout);
-            if (isIdle()) {
-                state = lastState;
-            }
-        }
+
+        if (!isPausing()) state = State.IDLE;
+
+        long timeoutElapsedTime = System.nanoTime() - startTime;
+        long timeoutRemainingTime = timeout - timeoutElapsedTime;
+
+        if (timeoutRemainingTime <= 0) return 0;
+
+        LockSupport.parkNanos(timeoutRemainingTime);
+
+        if (isIdle()) state = lastState;
+
         if (Thread.interrupted())
             throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
+
+        long elapsedTime = System.nanoTime() - startTime;
+        long remaining = timeout - elapsedTime;
+        return (remaining <= 0) ? 0 : remaining;
     }
 
     protected void wakeup() {
@@ -242,6 +253,8 @@ public abstract class Application {
 
         state = State.RUNNING;
         while (isAlive()) {
+            long startTime = System.nanoTime();
+
             if (isShutting()) break;
 
             switch (state) {
@@ -264,7 +277,6 @@ public abstract class Application {
                     state = State.RUNNING;
                     break;
                 case RUNNING:
-                    long startTime = System.nanoTime();
                     try {
                         onExecute();
                     } catch (Throwable t) {
