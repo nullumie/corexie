@@ -184,13 +184,9 @@ public abstract class Application {
         thread =
                 new Thread(
                         () -> {
-                            try {
-                                Thread.currentThread()
-                                        .setUncaughtExceptionHandler(uncaughtExceptionHandler);
-                                _run();
-                            } catch (Throwable fatal) {
-                                lifecycleException("internal", fatal);
-                            }
+                            Thread.currentThread()
+                                    .setUncaughtExceptionHandler(uncaughtExceptionHandler);
+                            _run();
                             thread = null;
                             Corexie.removeApplication(this);
                         },
@@ -203,18 +199,13 @@ public abstract class Application {
         Corexie.addApplication(this);
         thread = Thread.currentThread();
         String oldThreadName = thread.getName();
-        try {
-            thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-            thread.setName(formatThreadName(getName()));
-            _run();
-        } catch (Throwable fatal) {
-            lifecycleException("internal", fatal);
-        } finally {
-            thread.setName(oldThreadName);
-            thread.setUncaughtExceptionHandler(null);
-            thread = null;
-            Corexie.removeApplication(this);
-        }
+        thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+        thread.setName(formatThreadName(getName()));
+        _run();
+        thread.setName(oldThreadName);
+        thread.setUncaughtExceptionHandler(null);
+        thread = null;
+        Corexie.removeApplication(this);
     }
 
     protected void sleep(long timeout) throws InterruptedException {
@@ -245,7 +236,7 @@ public abstract class Application {
         try {
             onStartup();
         } catch (Throwable t) {
-            lifecycleException("startup", t);
+            lifecycleException(t);
             return;
         }
 
@@ -258,7 +249,7 @@ public abstract class Application {
                     try {
                         onPause();
                     } catch (Throwable t) {
-                        lifecycleException("pause", t);
+                        lifecycleException(t);
                     }
                     if (state != State.PAUSING) break;
                     state = State.PAUSED;
@@ -267,7 +258,7 @@ public abstract class Application {
                     try {
                         onResume();
                     } catch (Throwable t) {
-                        lifecycleException("resume", t);
+                        lifecycleException(t);
                     }
                     if (state != State.RESUMING) break;
                     state = State.RUNNING;
@@ -277,7 +268,7 @@ public abstract class Application {
                     try {
                         onExecute();
                     } catch (Throwable t) {
-                        lifecycleException("execute", t);
+                        lifecycleException(t);
                     }
 
                     if (state != State.RUNNING) break;
@@ -306,7 +297,7 @@ public abstract class Application {
                 onShutdown();
                 state = State.SHUTDOWN;
             } catch (Throwable t) {
-                lifecycleException("shutdown", t);
+                lifecycleException(t);
             }
         }
     }
@@ -345,22 +336,57 @@ public abstract class Application {
                         thread.getName(), thread.threadId()));
     }
 
-    private void lifecycleException(@NotNull String lifecycle, @NotNull Throwable throwable) {
+    private void lifecycleException(@NotNull Throwable e) {
+        try {
+            onException(e);
+        } catch (Exception userEx) {
+            getLogger().error("The onException handler itself threw an exception.", userEx);
+        }
+
+        if (state == State.SHUTTING) {
+            getLogger()
+                    .error(
+                            "Failed to complete [onShutdown]. The application will force close to avoid an infinite error loop.",
+                            e);
+        } else if (state == State.STARTING) {
+            getLogger()
+                    .error(
+                            "The application failed during [onStartup]. Startup process has been cancelled.",
+                            e);
+        } else {
+            String action =
+                    "on"
+                            + switch (state) {
+                                case RUNNING -> "Execute";
+                                case PAUSING -> "Pause";
+                                case RESUMING -> "Resume";
+                                default ->
+                                        throw new IllegalStateException(
+                                                "Unexpected lifecycle state: " + state);
+                            };
+
+            getLogger()
+                    .error(
+                            "An unrecoverable error occurred during [{}]. Closing the application...",
+                            action,
+                            e);
+            try {
+                onShutdown();
+            } catch (Exception shutdownEx) {
+                getLogger()
+                        .error(
+                                "A follow-up error occurred while trying to close the application during [{}].",
+                                action,
+                                shutdownEx);
+            }
+        }
+
         state = State.FAILED;
-
-        String message = String.format("Application lifecycle failure (phase=%s)", lifecycle);
-
-        ApplicationLifecycleException exception =
-                new ApplicationLifecycleException(message, throwable);
-
-        logger.error(message, throwable);
-
-        onException(exception);
     }
 
     private @NotNull Thread.UncaughtExceptionHandler createUncaughtExceptionHandler() {
         return (t, e) -> {
-            logger.error("FATAL: Uncaught exception in thread {}", t.getName(), e);
+            logger.error("Internal fatal error. The application is stopping...", e);
             state = State.FAILED;
         };
     }
