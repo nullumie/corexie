@@ -61,7 +61,7 @@ public final class Corexie {
     public static void shutdown() {
         setupLog("logs", LogMode.NONE);
         for (Application application : applications.values()) {
-            if (application == null || application.isInoperable()) return;
+            if (application == null || application.getState().isInoperable()) return;
             application.shutdown();
             try {
                 application.join();

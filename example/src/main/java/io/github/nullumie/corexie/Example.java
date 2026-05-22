@@ -81,6 +81,11 @@ public final class Example extends Application {
     }
 
     @Override
+    protected void onIdle() throws Exception {
+        getLogger().info("IDLE");
+    }
+
+    @Override
     protected void onException(@NotNull Throwable throwable) {
         getLogger().info("EXCEPTION: {}", throwable.getMessage());
     }

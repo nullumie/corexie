@@ -26,19 +26,6 @@ import org.slf4j.LoggerFactory;
 
 public abstract class Application {
 
-    public enum State {
-        INITIALIZED,
-        IDLE,
-        STARTING,
-        RUNNING,
-        RESUMING,
-        PAUSING,
-        PAUSED,
-        SHUTTING,
-        SHUTDOWN,
-        FAILED
-    }
-
     private final @NotNull String name;
     private final @NotNull Version version;
     private @Nullable Thread thread;
@@ -46,7 +33,7 @@ public abstract class Application {
     private final @NotNull Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
     private volatile long interval;
 
-    private volatile @NotNull State state = State.INITIALIZED;
+    private volatile @NotNull CycleState state = CycleState.INITIALIZED;
 
     protected Application(@NotNull String name, @NotNull Version version, long interval) {
         this.name = name;
@@ -68,7 +55,7 @@ public abstract class Application {
         return logger;
     }
 
-    public @NotNull State getState() {
+    public @NotNull CycleState getState() {
         return state;
     }
 
@@ -85,67 +72,6 @@ public abstract class Application {
         return oldInterval;
     }
 
-    public boolean isAlive() {
-        return state == State.STARTING
-                || state == State.RUNNING
-                || state == State.PAUSING
-                || state == State.PAUSED
-                || state == State.RESUMING
-                || state == State.SHUTTING
-                || state == State.IDLE;
-    }
-
-    public boolean isActive() {
-        return state == State.STARTING
-                || state == State.RUNNING
-                || state == State.PAUSING
-                || state == State.RESUMING
-                || state == State.SHUTTING;
-    }
-
-    public boolean isInactive() {
-        return state == State.IDLE || state == State.PAUSED;
-    }
-
-    public boolean isInoperable() {
-        return state == State.INITIALIZED
-                || state == State.SHUTTING
-                || state == State.SHUTDOWN
-                || state == State.FAILED;
-    }
-
-    public boolean isRunning() {
-        return state == State.RUNNING;
-    }
-
-    public boolean isIdle() {
-        return state == State.IDLE;
-    }
-
-    public boolean isPausing() {
-        return state == State.PAUSING;
-    }
-
-    public boolean isPaused() {
-        return state == State.PAUSED;
-    }
-
-    public boolean isResuming() {
-        return state == State.RESUMING;
-    }
-
-    public boolean isShutting() {
-        return state == State.SHUTTING;
-    }
-
-    public boolean isShutdown() {
-        return state == State.SHUTDOWN;
-    }
-
-    public boolean isFailed() {
-        return state == State.FAILED;
-    }
-
     public boolean isOnThread() {
         return Thread.currentThread() == thread;
     }
@@ -155,21 +81,21 @@ public abstract class Application {
     }
 
     public void shutdown() {
-        if (isInoperable()) return;
-        state = State.SHUTTING;
+        if (state.isInoperable()) return;
+        state = CycleState.SHUTTING;
         assert thread != null;
         thread.interrupt();
     }
 
     public void resume() {
-        if (!isPausing() && !isPaused()) return;
-        state = State.RESUMING;
+        if (!state.isPausing() && !state.isPaused()) return;
+        state = CycleState.RESUMING;
         if (isOffThread()) wakeup();
     }
 
     public void pause() {
-        if (isInoperable() || isPausing() || isPaused()) return;
-        state = State.PAUSING;
+        if (state.isInoperable() || state.isPausing() || state.isPaused()) return;
+        state = CycleState.PAUSING;
         if (isOffThread()) wakeup();
     }
 
@@ -179,7 +105,7 @@ public abstract class Application {
     }
 
     public void start() {
-        if (isAlive()) return;
+        if (state.isAlive()) return;
         Corexie.addApplication(this);
         thread =
                 new Thread(
@@ -195,7 +121,7 @@ public abstract class Application {
     }
 
     public void run() {
-        if (isAlive()) return;
+        if (state.isAlive()) return;
         Corexie.addApplication(this);
         thread = Thread.currentThread();
         String oldThreadName = thread.getName();
@@ -210,40 +136,25 @@ public abstract class Application {
 
     protected long sleep(long timeout) throws InterruptedException {
         long startTime = System.nanoTime();
-
         ensureOnThread();
-
-        if (!isActive() || timeout == 0) return 0;
-
-        State lastState = state;
-
-        if (!isPausing()) state = State.IDLE;
-
-        long timeoutElapsedTime = System.nanoTime() - startTime;
-        long timeoutRemainingTime = timeout - timeoutElapsedTime;
-
-        if (timeoutRemainingTime <= 0) return 0;
-
-        LockSupport.parkNanos(timeoutRemainingTime);
-
-        if (isIdle()) state = lastState;
-
-        if (Thread.interrupted())
-            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
-
-        long elapsedTime = System.nanoTime() - startTime;
-        long remaining = timeout - elapsedTime;
-        return (remaining <= 0) ? 0 : remaining;
+        if (state.isInoperable() || timeout == 0) return 0;
+        CycleState lastState = state;
+        if (!state.isPausing()) state = CycleState.SLEEPING;
+        try {
+            return _sleep(startTime, timeout);
+        } finally {
+            if (state.isSleeping()) state = lastState;
+        }
     }
 
     protected void wakeup() {
         ensureOffThread();
-        if (!isInactive()) return;
+        if (!state.isInactive()) return;
         LockSupport.unpark(thread);
     }
 
     private void _run() {
-        state = State.STARTING;
+        state = CycleState.STARTING;
         try {
             onStartup();
         } catch (Throwable t) {
@@ -251,11 +162,11 @@ public abstract class Application {
             return;
         }
 
-        state = State.RUNNING;
-        while (isAlive()) {
+        state = CycleState.RUNNING;
+        while (state.isAlive()) {
             long startTime = System.nanoTime();
 
-            if (isShutting()) break;
+            if (state.isShutting()) break;
 
             switch (state) {
                 case PAUSING:
@@ -264,8 +175,8 @@ public abstract class Application {
                     } catch (Throwable t) {
                         lifecycleException(t);
                     }
-                    if (state != State.PAUSING) break;
-                    state = State.PAUSED;
+                    if (state != CycleState.PAUSING) break;
+                    state = CycleState.PAUSED;
                     break;
                 case RESUMING:
                     try {
@@ -273,8 +184,8 @@ public abstract class Application {
                     } catch (Throwable t) {
                         lifecycleException(t);
                     }
-                    if (state != State.RESUMING) break;
-                    state = State.RUNNING;
+                    if (state != CycleState.RESUMING) break;
+                    state = CycleState.RUNNING;
                     break;
                 case RUNNING:
                     try {
@@ -283,31 +194,34 @@ public abstract class Application {
                         lifecycleException(t);
                     }
 
-                    if (state != State.RUNNING) break;
+                    if (state != CycleState.RUNNING) break;
 
-                    long elapsedTime = System.nanoTime() - startTime;
-                    if (elapsedTime >= interval) continue;
-                    long sleepTime = interval - elapsedTime;
+                    state = CycleState.IDLE;
 
                     try {
-                        sleep(sleepTime);
+                        onIdle();
+                    } catch (Throwable e) {
+                        lifecycleException(e);
+                    }
+
+                    try {
+                        _sleep(startTime, interval);
                     } catch (InterruptedException _) {
                     }
+
+                    if (state.isIdle()) state = CycleState.RUNNING;
 
                     break;
                 case PAUSED:
-                    try {
-                        sleep(Long.MAX_VALUE);
-                    } catch (InterruptedException _) {
-                    }
+                    LockSupport.parkNanos(Long.MAX_VALUE);
                     break;
             }
         }
 
-        if (state == State.SHUTTING) {
+        if (state == CycleState.SHUTTING) {
             try {
                 onShutdown();
-                state = State.SHUTDOWN;
+                state = CycleState.SHUTDOWN;
             } catch (Throwable t) {
                 lifecycleException(t);
             }
@@ -323,6 +237,8 @@ public abstract class Application {
     protected abstract void onResume() throws Exception;
 
     protected abstract void onShutdown() throws Exception;
+
+    protected abstract void onIdle() throws Exception;
 
     protected abstract void onException(@NotNull Throwable throwable);
 
@@ -355,12 +271,12 @@ public abstract class Application {
             getLogger().error("The onException handler itself threw an exception.", userEx);
         }
 
-        if (state == State.SHUTTING) {
+        if (state == CycleState.SHUTTING) {
             getLogger()
                     .error(
                             "Failed to complete [onShutdown]. The application will force close to avoid an infinite error loop.",
                             e);
-        } else if (state == State.STARTING) {
+        } else if (state == CycleState.STARTING) {
             getLogger()
                     .error(
                             "The application failed during [onStartup]. Startup process has been cancelled.",
@@ -372,6 +288,7 @@ public abstract class Application {
                                 case RUNNING -> "Execute";
                                 case PAUSING -> "Pause";
                                 case RESUMING -> "Resume";
+                                case IDLE -> "Idle";
                                 default ->
                                         throw new IllegalStateException(
                                                 "Unexpected lifecycle state: " + state);
@@ -393,13 +310,29 @@ public abstract class Application {
             }
         }
 
-        state = State.FAILED;
+        state = CycleState.FAILED;
+    }
+
+    private long _sleep(long startTime, long timeout) throws InterruptedException {
+        long timeoutElapsedTime = System.nanoTime() - startTime;
+        long timeoutRemainingTime = timeout - timeoutElapsedTime;
+
+        if (timeoutRemainingTime <= 0) return 0;
+
+        LockSupport.parkNanos(timeoutRemainingTime);
+
+        if (Thread.interrupted())
+            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
+
+        long elapsedTime = System.nanoTime() - startTime;
+        long remaining = timeout - elapsedTime;
+        return (remaining <= 0) ? 0 : remaining;
     }
 
     private @NotNull Thread.UncaughtExceptionHandler createUncaughtExceptionHandler() {
         return (t, e) -> {
             logger.error("Internal fatal error. The application is stopping...", e);
-            state = State.FAILED;
+            state = CycleState.FAILED;
         };
     }
 
