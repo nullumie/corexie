@@ -73,11 +73,13 @@ public abstract class Application {
     }
 
     public boolean isOnThread() {
-        return Thread.currentThread() == thread;
+        assert thread != null;
+        return Threads.isOnThread(thread);
     }
 
     public boolean isOffThread() {
-        return Thread.currentThread() != thread;
+        assert thread != null;
+        return Threads.isOffThread(thread);
     }
 
     public void shutdown() {
@@ -242,26 +244,56 @@ public abstract class Application {
 
     protected abstract void onException(@NotNull Throwable throwable);
 
-    protected void ensureOnThread() {
-        if (isOnThread()) return;
-        Thread current = Thread.currentThread();
+    /**
+     * Asserts that the current execution is occurring on the application's target thread.
+     *
+     * <p>This check utilizes Java's language-level assertion mechanism and is only active if
+     * assertions are enabled via the {@code -ea} JVM option.
+     *
+     * @see Threads#assertOnThread(Thread)
+     */
+    protected void assertOnThread() {
         assert thread != null;
-        throw new WrongThreadException(
-                String.format(
-                        "Invalid thread access: method must be called on '%s' (id=%d) but was '%s' (id=%d)",
-                        thread.getName(),
-                        thread.threadId(),
-                        current.getName(),
-                        current.threadId()));
+        Threads.assertOnThread(thread);
     }
 
-    protected void ensureOffThread() {
-        if (isOffThread()) return;
+    /**
+     * Asserts that the current execution is NOT occurring on the application's target thread.
+     *
+     * <p>This check utilizes Java's language-level assertion mechanism and is only active if
+     * assertions are enabled via the {@code -ea} JVM option.
+     *
+     * @see Threads#assertOffThread(Thread)
+     */
+    protected void assertOffThread() {
         assert thread != null;
-        throw new WrongThreadException(
-                String.format(
-                        "Invalid thread access: method must not be called on '%s' (id=%d)",
-                        thread.getName(), thread.threadId()));
+        Threads.assertOffThread(thread);
+    }
+
+    /**
+     * Ensures that the current execution is occurring on the application's target thread.
+     *
+     * <p>Unlike assertions, this verification is always active in production environments.
+     *
+     * @throws WrongThreadException if the current thread is not the target thread
+     * @see Threads#ensureOnThread(Thread)
+     */
+    protected void ensureOnThread() {
+        assert thread != null;
+        Threads.ensureOnThread(thread);
+    }
+
+    /**
+     * Ensures that the current execution is NOT occurring on the application's target thread.
+     *
+     * <p>Unlike assertions, this verification is always active in production environments.
+     *
+     * @throws WrongThreadException if the current thread is the target thread
+     * @see Threads#ensureOffThread(Thread)
+     */
+    protected void ensureOffThread() {
+        assert thread != null;
+        Threads.ensureOffThread(thread);
     }
 
     private void lifecycleException(@NotNull Throwable e) {

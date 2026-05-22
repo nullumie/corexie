@@ -2,6 +2,7 @@
   <configuration default="false" name="Example" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="io.github.nullumie.corexie.Example" />
     <module name="corexie-example" />
+    <option name="VM_PARAMETERS" value="-ea" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="io.github.nullumie.corexie.*" />
