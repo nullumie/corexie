@@ -143,7 +143,7 @@ public abstract class Application {
         CycleState lastState = state;
         if (!state.isPausing()) state = CycleState.SLEEPING;
         try {
-            return _sleep(startTime, timeout);
+            return Threads.park(startTime, timeout);
         } finally {
             if (state.isSleeping()) state = lastState;
         }
@@ -152,7 +152,8 @@ public abstract class Application {
     protected void wakeup() {
         ensureOffThread();
         if (!state.isInactive()) return;
-        LockSupport.unpark(thread);
+        assert thread != null;
+        Threads.unpark(thread);
     }
 
     private void _run() {
@@ -207,7 +208,7 @@ public abstract class Application {
                     }
 
                     try {
-                        _sleep(startTime, interval);
+                        Threads.park(startTime, interval);
                     } catch (InterruptedException _) {
                     }
 
@@ -343,22 +344,6 @@ public abstract class Application {
         }
 
         state = CycleState.FAILED;
-    }
-
-    private long _sleep(long startTime, long timeout) throws InterruptedException {
-        long timeoutElapsedTime = System.nanoTime() - startTime;
-        long timeoutRemainingTime = timeout - timeoutElapsedTime;
-
-        if (timeoutRemainingTime <= 0) return 0;
-
-        LockSupport.parkNanos(timeoutRemainingTime);
-
-        if (Thread.interrupted())
-            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
-
-        long elapsedTime = System.nanoTime() - startTime;
-        long remaining = timeout - elapsedTime;
-        return (remaining <= 0) ? 0 : remaining;
     }
 
     private @NotNull Thread.UncaughtExceptionHandler createUncaughtExceptionHandler() {

@@ -17,17 +17,59 @@
  */
 package io.github.nullumie.corexie;
 
+import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility class providing synchronous thread validation mechanisms.
+ * Utility class providing synchronous thread validation and precise scheduling mechanisms.
  *
  * <p>This class cannot be instantiated and offers static methods to assert or verify whether the
- * current execution flow matches or differs from specific target threads.
+ * current execution flow matches specific target threads, as well as high-precision thread parking
+ * utilities.
  */
 public final class Threads {
 
     private Threads() {}
+
+    /**
+     * Disables the current thread for thread scheduling purposes for up to the remaining timeout
+     * duration.
+     *
+     * <p>This method calculates the elapsed time since {@code startTime} and parks the thread using
+     * {@link LockSupport#parkNanos(long)}. If the timeout has already expired, it returns
+     * immediately.
+     *
+     * @param startTime the base JVM high-resolution time source in nanoseconds (e.g., from {@link
+     *     System#nanoTime()})
+     * @param timeout the total duration to wait in nanoseconds
+     * @return the remaining timeout nanoseconds if unparked early, or {@code 0} if the timeout
+     *     expired
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     */
+    public static long park(long startTime, long timeout) throws InterruptedException {
+        long timeoutElapsedTime = System.nanoTime() - startTime;
+        long timeoutRemainingTime = timeout - timeoutElapsedTime;
+        if (timeoutRemainingTime <= 0) return 0;
+        LockSupport.parkNanos(timeoutRemainingTime);
+        if (Thread.interrupted())
+            throw new InterruptedException("Interrupted while waiting for " + timeout + "ns");
+        long elapsedTime = System.nanoTime() - startTime;
+        long remaining = timeout - elapsedTime;
+        return (remaining <= 0) ? 0 : remaining;
+    }
+
+    /**
+     * Makes available the permit for the given thread, if it was not already available.
+     *
+     * <p>If the thread was blocked on {@link LockSupport#park() park} (or a variant like our {@link
+     * #park(long, long)}), it will unblock. If it was not blocked, its next call to a parking
+     * method is guaranteed not to block.
+     *
+     * @param thread the thread to unpark; must not be null
+     */
+    public static void unpark(@NotNull Thread thread) {
+        LockSupport.unpark(thread);
+    }
 
     /**
      * Asserts that the current execution is occurring on the specified thread.
