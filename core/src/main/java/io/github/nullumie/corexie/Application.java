@@ -155,33 +155,6 @@ public abstract class Application {
     }
 
     /**
-     * Checks if the current executing thread is the application's dedicated lifecycle thread.
-     *
-     * <p>This method verifies that the calling context matches the internal thread driving the
-     * application's runtime cycle.
-     *
-     * @return {@code true} if called from the application thread, {@code false} otherwise
-     */
-    public boolean isOnThread() {
-        assert thread != null;
-        return Threads.isOnThread(thread);
-    }
-
-    /**
-     * Checks if the current executing thread is different from the application's dedicated
-     * lifecycle thread.
-     *
-     * <p>This method verifies that the calling context is external to the internal thread driving
-     * the application's runtime cycle.
-     *
-     * @return {@code true} if called from an external thread, {@code false} otherwise
-     */
-    public boolean isOffThread() {
-        assert thread != null;
-        return Threads.isOffThread(thread);
-    }
-
-    /**
      * Initiates a graceful shutdown sequence for the application.
      *
      * <p>If the application is already in an inoperable state (such as already closed or failed),
@@ -503,6 +476,33 @@ public abstract class Application {
     protected void ensureOffThread() {
         assert thread != null;
         Threads.ensureOffThread(thread);
+    }
+
+    /**
+     * Checks if the current executing thread is the application's dedicated lifecycle thread.
+     *
+     * <p>This method verifies that the calling context matches the internal thread driving the
+     * application's runtime cycle.
+     *
+     * @return {@code true} if called from the application thread, {@code false} otherwise
+     */
+    protected boolean isOnThread() {
+        assert thread != null;
+        return Threads.isOnThread(thread);
+    }
+
+    /**
+     * Checks if the current executing thread is different from the application's dedicated
+     * lifecycle thread.
+     *
+     * <p>This method verifies that the calling context is external to the internal thread driving
+     * the application's runtime cycle.
+     *
+     * @return {@code true} if called from an external thread, {@code false} otherwise
+     */
+    protected boolean isOffThread() {
+        assert thread != null;
+        return Threads.isOffThread(thread);
     }
 
     private void _run() {
