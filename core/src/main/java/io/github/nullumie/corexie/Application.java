@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * while abstracting away concurrency assertions, global application tracking, and automated
  * fallback error handling.
  *
- * <h3>Lifecycle Transitions</h3>
+ * <h2>Lifecycle Transitions</h2>
  *
  * The internal state transitions through multiple phases governed by {@link CycleState}:
  *
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code FAILED} - The terminal state reached if any unhandled lifecycle exception occurs.
  * </ul>
  *
- * <h3>Concurrency Model</h3>
+ * <h2>Concurrency Model</h2>
  *
  * An application can be executed asynchronously in a managed daemon thread via {@link #start()} or
  * synchronously blocking the caller thread via {@link #run()}. This class includes rigorous
