@@ -2,17 +2,13 @@
 
 # Licensing
 
-</div>
-
 This project follows a split-licensing strategy to balance the protection of the core library with the practical needs of developers integrating the software.
+
+</div>
 
 ---
 
-<div style="text-align: center;">
-
 ## Core Module (corexie-core)
-
-</div>
 
 The core module and its compiled artifacts are licensed under the **GNU Lesser General Public License v3.0 only (LGPL-3.0-only)**.
 
@@ -22,11 +18,7 @@ The core module and its compiled artifacts are licensed under the **GNU Lesser G
 
 ---
 
-<div style="text-align: center;">
-
 ## Examples and Snippets (corexie-example)
-
-</div>
 
 All source code within the `example` module and all code snippets provided in the documentation are licensed under the **MIT License**.
 
@@ -37,6 +29,6 @@ All source code within the `example` module and all code snippets provided in th
 
 <div style="text-align: center;">
 
-**Copyright © 2026 Nullumie**
+*Copyright © 2026 Nullumie*
 
 </div>
