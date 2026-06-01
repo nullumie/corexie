@@ -10,7 +10,7 @@
   </parent>
 
   <name>Corexie: core</name>
-  <description>A clean foundation for predictable Java applications.</description>
+  <description>A high-performance, predictable lifecycle framework for Java.</description>
   <artifactId>corexie-core</artifactId>
   <packaging>jar</packaging>
 
