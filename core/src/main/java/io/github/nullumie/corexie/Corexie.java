@@ -76,7 +76,12 @@ public final class Corexie {
     }
 
     static void addApplication(@NotNull Application application) {
-        applications.putIfAbsent(application.getName(), application);
+        if (applications.putIfAbsent(application.getName(), application) != null) {
+            throw new IllegalStateException(
+                    String.format(
+                            "Failed to add application. An entry with name '%s' already exists in the registry.",
+                            application.getName()));
+        }
     }
 
     static void removeApplication(@NotNull Application application) {
