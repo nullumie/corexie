@@ -7,8 +7,8 @@ on:
       - develop
 
 jobs:
-  push-integration:
-    name: Build, Test and Deploy
+  push-branch-integration:
+    name: Build, Test and Deploy (Integration)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,7 +24,7 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
-      - name: Build, Test and Deploy
+      - name: Build, Test and Deploy (Integration)
         run: mvn clean deploy -Pintegration -B -ntp
         env:
           MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}

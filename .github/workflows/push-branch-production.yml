@@ -1,16 +1,14 @@
-name: Build and Test
+name: Build and Test (Production)
 
 on:
   push:
-    branches-ignore:
-      - dev
-      - develop
+    branches:
       - main
       - master
 
 jobs:
-  push-feature:
-    name: Build and Test
+  push-branch-feature:
+    name: Build and Test (Production)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,5 +21,5 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Build and Test
-        run: mvn clean install -Pfeature
+      - name: Build and Test (Production)
+        run: mvn clean install -Pproduction -B -ntp
