@@ -14,7 +14,7 @@
     </option>
     <option name="disabledProfiles">
       <list>
-        <option value="feature" />
+        <option value="production" />
       </list>
     </option>
   </component>
