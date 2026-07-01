@@ -302,15 +302,15 @@ public abstract class Application {
      *
      * <p>This method manages the temporary transition of the application's lifecycle state to
      * {@code SLEEPING} if it is not currently in a pausing state. It ensures that the state is
-     * safely restored to its previous phase upon awakening, provided it is still in the
-     * {@code SLEEPING} state.
+     * safely restored to its previous phase upon awakening, provided it is still in the {@code
+     * SLEEPING} state.
      *
-     * <p>The sleep operation is skipped entirely, and {@code 0} is returned, if the application
-     * is in an inoperable state or if the requested timeout duration is zero or negative.
+     * <p>The sleep operation is skipped entirely, and {@code 0} is returned, if the application is
+     * in an inoperable state or if the requested timeout duration is zero or negative.
      *
      * @param timeout the maximum duration to park the thread in nanoseconds
      * @return the remaining unspent timeout duration in nanoseconds if awakened early, or {@code 0}
-     *         if the full timeout elapsed, the sleep was skipped, or if negative timeout was passed
+     *     if the full timeout elapsed, the sleep was skipped, or if negative timeout was passed
      * @throws InterruptedException if the thread is interrupted while waiting
      * @throws WrongThreadException if called from an external thread context
      */
