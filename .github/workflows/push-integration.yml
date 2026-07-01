@@ -25,7 +25,7 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       - name: Build, Test and Deploy
-        run: mvn clean deploy -Pintegration
+        run: mvn clean deploy -Pintegration -B -ntp
         env:
           MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
