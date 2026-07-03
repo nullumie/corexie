@@ -17,6 +17,7 @@
   </properties>
 
   <name>Corexie: example</name>
+  <description>Example usage and demonstration of the Corexie high-performance lifecycle framework.</description>
   <dependencies>
     <dependency>
       <groupId>io.github.nullumie.corexie</groupId>
@@ -38,7 +39,7 @@
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>https://opensource.org</url>
+      <url>https://opensource.org/license/mit</url>
       <distribution>repo</distribution>
     </license>
   </licenses>

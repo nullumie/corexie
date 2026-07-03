@@ -10,7 +10,7 @@
   </parent>
 
   <name>Corexie: core</name>
-  <description>A high-performance, predictable lifecycle framework for Java.</description>
+  <description>Core module for Corexie, providing the essential high-performance and predictable lifecycle framework APIs for Java..</description>
   <artifactId>corexie-core</artifactId>
   <packaging>jar</packaging>
 

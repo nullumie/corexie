@@ -23,6 +23,19 @@
   </properties>
 
   <name>Corexie</name>
+  <description>A high-performance, predictable lifecycle framework for Java.</description>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License v3.0 only</name>
+      <url>https://www.gnu.org/licenses/lgpl-3.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/license/mit</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
   <modules>
     <module>core</module>
     <module>example</module>
