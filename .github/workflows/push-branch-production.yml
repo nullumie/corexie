@@ -20,6 +20,10 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Build and Test (Production)
         run: mvn clean install -Pproduction -B -ntp
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
