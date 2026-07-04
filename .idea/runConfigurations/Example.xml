@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Example" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="io.github.nullumie.corexie.Example" />
+    <option name="MAIN_CLASS_NAME" value="io.github.nullumie.corexie.example.Example" />
     <module name="corexie-example" />
     <option name="VM_PARAMETERS" value="-ea" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="io.github.nullumie.corexie.*" />
+        <option name="PATTERN" value="io.github.nullumie.corexie.example.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

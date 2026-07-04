@@ -21,9 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.nullumie.corexie;
+package io.github.nullumie.corexie.example;
 
 import com.github.zafarkhaja.semver.Version;
+import io.github.nullumie.corexie.core.Application;
+import io.github.nullumie.corexie.core.Corexie;
+import io.github.nullumie.corexie.core.LogMode;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
