@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library. If not, see <https://www.gnu.org/licenses/>.
  */
-package io.github.nullumie.corexie;
+package io.github.nullumie.corexie.core;
 
 /**
  * Represents the lifecycle states of a process or execution cycle.

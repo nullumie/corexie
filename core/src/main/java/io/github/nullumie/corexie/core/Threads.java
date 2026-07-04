@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library. If not, see <https://www.gnu.org/licenses/>.
  */
-package io.github.nullumie.corexie;
+package io.github.nullumie.corexie.core;
 
 import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
