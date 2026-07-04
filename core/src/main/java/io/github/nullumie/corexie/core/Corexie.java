@@ -28,7 +28,7 @@ public final class Corexie {
     private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
     private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
 
-    private static final @NotNull Version version = Version.of(0, 1, 0, "SNAPSHOT");
+    private static final @NotNull Version version = Version.of(0, 2, 0, "SNAPSHOT");
 
     private static final ConcurrentHashMap<String, Application> applications =
             new ConcurrentHashMap<>();

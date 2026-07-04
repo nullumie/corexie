@@ -36,7 +36,7 @@ public final class Example extends Application {
     private int count = 0;
 
     Example() {
-        super("Example", Version.of(0, 1, 0, "SNAPSHOT"), TimeUnit.MILLISECONDS.toNanos(1000));
+        super("Example", Version.of(0, 2, 0, "SNAPSHOT"), TimeUnit.MILLISECONDS.toNanos(1000));
     }
 
     @Override
