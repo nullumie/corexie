@@ -18,6 +18,10 @@
 package io.github.nullumie.corexie.core;
 
 import com.github.zafarkhaja.semver.Version;
+import io.github.nullumie.corexie.core.json.Json;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -25,15 +29,21 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Corexie {
 
+    private static final @NotNull String META_FILE_NAME = "corexie.json";
     private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
     private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
-
-    private static final @NotNull Version version = Version.of(0, 2, 0, "SNAPSHOT");
 
     private static final ConcurrentHashMap<String, Application> applications =
             new ConcurrentHashMap<>();
 
+    private static @NotNull String name;
+    private static @NotNull Version version;
+
     private Corexie() {}
+
+    public static @NotNull String getName() {
+        return name;
+    }
 
     public static @NotNull Version getVersion() {
         return version;
@@ -53,6 +63,24 @@ public final class Corexie {
     }
 
     public static void initialize(@NotNull String logPath, @NotNull LogMode logMode) {
+        try (InputStream inputStream = Corexie.class.getResourceAsStream("/" + META_FILE_NAME)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException(
+                        String.format(
+                                "Critical metadata resource file '%s' could not be found in the classpath relative to class %s.",
+                                META_FILE_NAME, Corexie.class.getName()));
+            }
+            CoreMeta meta = Json.get().read(inputStream, CoreMeta.class);
+            name = meta.getName();
+            version = meta.getVersion();
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    String.format(
+                            "Failed to initialize Corexie framework. Resource loading failed for metadata file: '%s'.",
+                            META_FILE_NAME),
+                    e);
+        }
+
         System.setProperty("log4j.shutdownHookEnabled", "false");
         setupLog(logPath, logMode);
         setupShutdownHook();

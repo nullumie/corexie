@@ -18,6 +18,11 @@
 package io.github.nullumie.corexie.core;
 
 import com.github.zafarkhaja.semver.Version;
+import io.github.nullumie.corexie.core.json.Json;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -73,18 +78,16 @@ public abstract class Application {
      * Constructs a new {@code Application} instance with a dedicated identity, version, and cycle
      * throttling interval.
      *
-     * @param name the unique identifier name of this application, used for logging and thread
-     *     naming
-     * @param version the semantic version of this application instance
-     * @param interval the cycle execution interval/throttling delay in nanoseconds
+     * @param id the unique identifier id of this application, used for logging and thread naming
      * @throws IllegalArgumentException if the provided interval is negative
      */
-    protected Application(@NotNull String name, @NotNull Version version, long interval) {
-        this.name = name;
-        this.version = version;
+    protected Application(@NotNull String id) {
+        CoreNodeMeta meta = loadMeta(id);
+        this.name = meta.getName();
+        this.version = meta.getVersion();
+        this.interval = validateInterval(meta.getInterval());
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
-        this.interval = validateInterval(interval);
     }
 
     /**
@@ -644,5 +647,19 @@ public abstract class Application {
     private static long validateInterval(long interval) {
         if (interval >= 0) return interval;
         throw new IllegalArgumentException("Interval must not be negative: " + interval);
+    }
+
+    private static @NotNull CoreNodeMeta loadMeta(@NotNull String id) {
+        String filename = "/corexie/node/" + id + ".json";
+        try (InputStream inputStream = Application.class.getResourceAsStream(filename)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException(
+                        "Resource file not found on classpath: " + filename);
+            }
+            return Json.get().read(inputStream, CoreNodeMeta.class);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to load core node metadata from: " + filename, e);
+        }
     }
 }
