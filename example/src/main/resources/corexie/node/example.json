@@ -1,0 +1,5 @@
+{
+  "name": "Example",
+  "version": "${project.version}",
+  "interval": "1000000000"
+}

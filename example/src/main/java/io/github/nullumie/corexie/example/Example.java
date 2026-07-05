@@ -23,7 +23,6 @@
  */
 package io.github.nullumie.corexie.example;
 
-import com.github.zafarkhaja.semver.Version;
 import io.github.nullumie.corexie.core.Application;
 import io.github.nullumie.corexie.core.Corexie;
 import io.github.nullumie.corexie.core.LogMode;
@@ -36,7 +35,7 @@ public final class Example extends Application {
     private int count = 0;
 
     Example() {
-        super("Example", Version.of(0, 2, 0, "SNAPSHOT"), TimeUnit.MILLISECONDS.toNanos(1000));
+        super("example");
     }
 
     @Override
