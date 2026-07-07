@@ -43,20 +43,34 @@ public final class Json {
 
     static {
         instances.put(
-                DEFAULT_NAME, new Json(JsonMapper.builder().addModule(new SemVerModule()).build()));
+                DEFAULT_NAME,
+                new Json(DEFAULT_NAME, JsonMapper.builder().addModule(new SemVerModule()).build()));
     }
 
+    private final @NotNull String name;
     private final @NotNull JsonMapper mapper;
 
-    private Json(@NotNull JsonMapper mapper) {
+    private Json(@NotNull String name, @NotNull JsonMapper mapper) {
+        this.name = name;
         this.mapper = mapper;
+    }
+
+    /**
+     * Retrieves the unique registration name assigned to this {@code Json} instance.
+     *
+     * <p>For the primary global wrapper, this will return {@code "default"}.
+     *
+     * @return the non-null identifier name of this instance
+     */
+    public @NotNull String getName() {
+        return name;
     }
 
     /**
      * Returns the underlying Jackson {@link JsonMapper} engine wrapped by this instance.
      *
-     * <p>Use this method to access low-level mapping capabilities, custom configurations,
-     * or advanced serialization features not directly exposed by this wrapper class.
+     * <p>Use this method to access low-level mapping capabilities, custom configurations, or
+     * advanced serialization features not directly exposed by this wrapper class.
      *
      * @return the non-null, configured {@code JsonMapper} instance
      */
@@ -117,7 +131,7 @@ public final class Json {
         if (DEFAULT_NAME.equalsIgnoreCase(name)) {
             throw new IllegalArgumentException("Cannot overwrite the default JSON instance.");
         }
-        Json json = new Json(mapper);
+        Json json = new Json(name, mapper);
         if (instances.putIfAbsent(name, json) != null) {
             throw new IllegalArgumentException(
                     "A JSON instance with the name '" + name + "' already exists.");
