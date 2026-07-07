@@ -53,6 +53,18 @@ public final class Json {
     }
 
     /**
+     * Returns the underlying Jackson {@link JsonMapper} engine wrapped by this instance.
+     *
+     * <p>Use this method to access low-level mapping capabilities, custom configurations,
+     * or advanced serialization features not directly exposed by this wrapper class.
+     *
+     * @return the non-null, configured {@code JsonMapper} instance
+     */
+    public @NotNull JsonMapper getMapper() {
+        return mapper;
+    }
+
+    /**
      * Retrieves the default global {@code Json} manager instance.
      *
      * @return the default pre-configured {@code Json} instance; never null
