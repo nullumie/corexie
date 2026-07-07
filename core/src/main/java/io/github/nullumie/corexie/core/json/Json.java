@@ -95,7 +95,7 @@ public final class Json {
      *     name
      */
     public static @Nullable Json get(@NotNull String name) {
-        return instances.get(name);
+        return instances.get(name.toLowerCase());
     }
 
     /**
@@ -109,7 +109,8 @@ public final class Json {
      *     (case-insensitive)
      */
     public static @Nullable Json remove(@NotNull String name) {
-        if (DEFAULT_NAME.equalsIgnoreCase(name)) {
+        name = name.toLowerCase();
+        if (DEFAULT_NAME.equals(name)) {
             throw new IllegalArgumentException("Cannot remove the default JSON instance.");
         }
         return instances.remove(name);
@@ -128,7 +129,8 @@ public final class Json {
      *     (case-insensitive), or if an instance with the specified name already exists
      */
     public static @NotNull Json create(@NotNull String name, @NotNull JsonMapper mapper) {
-        if (DEFAULT_NAME.equalsIgnoreCase(name)) {
+        name = name.toLowerCase();
+        if (DEFAULT_NAME.equals(name)) {
             throw new IllegalArgumentException("Cannot overwrite the default JSON instance.");
         }
         Json json = new Json(name, mapper);
