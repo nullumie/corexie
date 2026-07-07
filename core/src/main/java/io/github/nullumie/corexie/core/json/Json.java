@@ -63,7 +63,10 @@ public final class Json {
             throw new IllegalArgumentException("Cannot overwrite the default JSON instance.");
         }
         Json json = new Json(mapper);
-        instances.put(name, json);
+        if (instances.putIfAbsent(name, json) != null) {
+            throw new IllegalArgumentException(
+                    "A JSON instance with the name '" + name + "' already exists.");
+        }
         return json;
     }
 
