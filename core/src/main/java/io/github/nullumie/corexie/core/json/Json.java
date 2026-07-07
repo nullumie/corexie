@@ -17,7 +17,7 @@
  */
 package io.github.nullumie.corexie.core.json;
 
-import io.github.nullumie.corexie.core.json.module.SemVerJsonModule;
+import io.github.nullumie.corexie.core.json.module.SemVerModule;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
@@ -34,8 +34,7 @@ public final class Json {
 
     static {
         instances.put(
-                DEFAULT_NAME,
-                new Json(JsonMapper.builder().addModule(new SemVerJsonModule()).build()));
+                DEFAULT_NAME, new Json(JsonMapper.builder().addModule(new SemVerModule()).build()));
     }
 
     private final @NotNull JsonMapper mapper;

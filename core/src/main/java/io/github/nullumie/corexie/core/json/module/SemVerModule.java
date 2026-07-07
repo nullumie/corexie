@@ -30,7 +30,7 @@ import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.module.SimpleModule;
 
-public final class SemVerJsonModule extends SimpleModule {
+public final class SemVerModule extends SimpleModule {
 
     private static class Serializer extends ValueSerializer<Version> {
         @Override
@@ -60,8 +60,8 @@ public final class SemVerJsonModule extends SimpleModule {
         }
     }
 
-    public SemVerJsonModule() {
-        super("JsonSemVerModule");
+    public SemVerModule() {
+        super("SemVerModule");
         this.addSerializer(Version.class, new Serializer());
         this.addDeserializer(Version.class, new Deserializer());
     }
