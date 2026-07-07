@@ -30,6 +30,16 @@ import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.module.SimpleModule;
 
+/**
+ * A Jackson module that provides serialization and deserialization support for Semantic Versioning
+ * {@link Version} objects.
+ *
+ * <p>This class integrates into the library's JSON processing layer to automatically handle
+ * conversion between {@link Version} data structures and standard SemVer string representations.
+ *
+ * @see SimpleModule
+ * @see Version
+ */
 public final class SemVerModule extends SimpleModule {
 
     private static class Serializer extends ValueSerializer<Version> {
@@ -60,6 +70,12 @@ public final class SemVerModule extends SimpleModule {
         }
     }
 
+    /**
+     * Constructs a new {@code SemVerModule} and registers the {@link Version} serializer and
+     * deserializer components.
+     *
+     * <p>The module is initialized with the identifier {@code "SemVerModule"}.
+     */
     public SemVerModule() {
         super("SemVerModule");
         this.addSerializer(Version.class, new Serializer());
