@@ -23,14 +23,14 @@
  */
 package io.github.nullumie.corexie.example;
 
-import io.github.nullumie.corexie.core.Application;
+import io.github.nullumie.corexie.core.CoreNode;
 import io.github.nullumie.corexie.core.Corexie;
 import io.github.nullumie.corexie.core.LogMode;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
-public final class Example extends Application {
+public final class Example extends CoreNode {
 
     private int count = 0;
 

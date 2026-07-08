@@ -33,8 +33,7 @@ public final class Corexie {
     private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
     private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
 
-    private static final ConcurrentHashMap<String, Application> applications =
-            new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, CoreNode> nodes = new ConcurrentHashMap<>();
 
     private static @NotNull String name;
     private static @NotNull Version version;
@@ -88,32 +87,32 @@ public final class Corexie {
 
     public static void shutdown() {
         setupLog("logs", LogMode.NONE);
-        for (Application application : applications.values()) {
-            if (application == null || application.getState().isInoperable()) return;
-            application.shutdown();
+        for (CoreNode node : nodes.values()) {
+            if (node == null || node.getState().isInoperable()) return;
+            node.shutdown();
             try {
-                application.join();
+                node.join();
             } catch (InterruptedException _) {
             }
         }
         LogManager.shutdown();
     }
 
-    public static Optional<Application> getApplication(@NotNull String name) {
-        return Optional.ofNullable(applications.get(name));
+    public static Optional<CoreNode> getNode(@NotNull String name) {
+        return Optional.ofNullable(nodes.get(name));
     }
 
-    static void addApplication(@NotNull Application application) {
-        if (applications.putIfAbsent(application.getName(), application) != null) {
+    static void addNode(@NotNull CoreNode coreNode) {
+        if (nodes.putIfAbsent(coreNode.getName(), coreNode) != null) {
             throw new IllegalStateException(
                     String.format(
                             "Failed to add application. An entry with name '%s' already exists in the registry.",
-                            application.getName()));
+                            coreNode.getName()));
         }
     }
 
-    static void removeApplication(@NotNull Application application) {
-        applications.remove(application.getName());
+    static void removeNode(@NotNull CoreNode coreNode) {
+        nodes.remove(coreNode.getName());
     }
 
     private static void setupLog(@NotNull String logPath, @NotNull LogMode logMode) {

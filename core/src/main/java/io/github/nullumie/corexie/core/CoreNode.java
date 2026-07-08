@@ -33,18 +33,18 @@ import org.slf4j.LoggerFactory;
  * An abstract base class that encapsulates a high-performance, single-threaded lifecycle loop for
  * building manageable services or applications.
  *
- * <p>The {@code Application} framework provides a structured state machine supporting startup,
+ * <p>The {@code CoreNode} framework provides a structured state machine supporting startup,
  * sequential execution cycles, real-time loop interval throttling, thread parking/idling, pausing,
  * resuming, and graceful shutdown phases. It isolates business logic into well-defined hook methods
- * while abstracting away concurrency assertions, global application tracking, and automated
- * fallback error handling.
+ * while abstracting away concurrency assertions, global node tracking, and automated fallback error
+ * handling.
  *
  * <h2>Lifecycle Transitions</h2>
  *
  * The internal state transitions through multiple phases governed by {@link CycleState}:
  *
  * <ul>
- *   <li>{@code INITIALIZED} - Set when the application instance is constructed.
+ *   <li>{@code INITIALIZED} - Set when the node instance is constructed.
  *   <li>{@code STARTING} - Set during initialization while executing {@link #onStartup()}.
  *   <li>{@code RUNNING} - The standard active phase while executing {@link #onExecute()}.
  *   <li>{@code IDLE} - A temporary phase executed right before the thread is parked/throttled.
@@ -58,12 +58,12 @@ import org.slf4j.LoggerFactory;
  *
  * <h2>Concurrency Model</h2>
  *
- * An application can be executed asynchronously in a managed daemon thread via {@link #start()} or
+ * A node can be executed asynchronously in a managed daemon thread via {@link #start()} or
  * synchronously blocking the caller thread via {@link #run()}. This class includes rigorous
  * calling-context checks (e.g., {@link #ensureOnThread()} and {@link #ensureOffThread()}) to detect
  * illegal multithreaded interactions early in development.
  */
-public abstract class Application {
+public abstract class CoreNode {
 
     private final @NotNull String name;
     private final @NotNull Version version;
@@ -75,13 +75,13 @@ public abstract class Application {
     private volatile @NotNull CycleState state = CycleState.INITIALIZED;
 
     /**
-     * Constructs a new {@code Application} instance with a dedicated identity, version, and cycle
+     * Constructs a new {@code CoreNode} instance with a dedicated identity, version, and cycle
      * throttling interval.
      *
-     * @param id the unique identifier id of this application, used for logging and thread naming
+     * @param id the unique identifier id of this node, used for logging and thread naming
      * @throws IllegalArgumentException if the provided interval is negative
      */
-    protected Application(@NotNull String id) {
+    protected CoreNode(@NotNull String id) {
         CoreNodeMeta meta = loadMeta(id);
         this.name = meta.getName();
         this.version = meta.getVersion();
@@ -91,34 +91,34 @@ public abstract class Application {
     }
 
     /**
-     * Retrieves the unique identifier name of this application.
+     * Retrieves the unique identifier name of this node.
      *
-     * @return the non-null {@link String} representing the application name
+     * @return the non-null {@link String} representing the node name
      */
     public @NotNull String getName() {
         return name;
     }
 
     /**
-     * Retrieves the current semantic version of this application.
+     * Retrieves the current semantic version of this node.
      *
-     * @return the non-null {@link Version} specifying the application version
+     * @return the non-null {@link Version} specifying the node version
      */
     public @NotNull Version getVersion() {
         return version;
     }
 
     /**
-     * Retrieves the primary logging instance assigned to this application.
+     * Retrieves the primary logging instance assigned to this node.
      *
-     * @return the non-null {@link Logger} configured for this application context
+     * @return the non-null {@link Logger} configured for this node context
      */
     public @NotNull Logger getLogger() {
         return logger;
     }
 
     /**
-     * Retrieves the current execution lifecycle state of the application.
+     * Retrieves the current execution lifecycle state of the node.
      *
      * @return the non-null {@link CycleState} representing the active lifecycle phase
      */
@@ -127,7 +127,7 @@ public abstract class Application {
     }
 
     /**
-     * Retrieves the current execution cycle interval of the application in nanoseconds.
+     * Retrieves the current execution cycle interval of the node in nanoseconds.
      *
      * @return the current cycle interval in nanoseconds
      */
@@ -136,13 +136,13 @@ public abstract class Application {
     }
 
     /**
-     * Updates the application's execution cycle interval.
+     * Updates the node's execution cycle interval.
      *
      * <p>The new interval value is validated before it is applied. If the new value matches the
      * existing interval, no changes are made.
      *
-     * <p>If the application is currently idling (off-thread) when the interval changes, the
-     * execution thread is awakened immediately to apply the new configuration.
+     * <p>If the node is currently idling (off-thread) when the interval changes, the execution
+     * thread is awakened immediately to apply the new configuration.
      *
      * @param interval the new cycle interval in nanoseconds
      * @return the previous interval value in nanoseconds
@@ -158,10 +158,10 @@ public abstract class Application {
     }
 
     /**
-     * Initiates a graceful shutdown sequence for the application.
+     * Initiates a graceful shutdown sequence for the node.
      *
-     * <p>If the application is already in an inoperable state (such as already closed or failed),
-     * this call returns immediately without taking any action.
+     * <p>If the node is already in an inoperable state (such as already closed or failed), this
+     * call returns immediately without taking any action.
      *
      * <p>When executed, this method transitions the lifecycle state to {@code SHUTTING} and sends
      * an interrupt signal to the active execution thread. This breaks the thread out of any parking
@@ -176,10 +176,10 @@ public abstract class Application {
     }
 
     /**
-     * Resumes the application from a paused or pausing state.
+     * Resumes the node from a paused or pausing state.
      *
-     * <p>If the application is not currently in the {@code PAUSING} or {@code PAUSED} state, this
-     * call returns immediately without taking any action.
+     * <p>If the node is not currently in the {@code PAUSING} or {@code PAUSED} state, this call
+     * returns immediately without taking any action.
      *
      * <p>When executed, this method transitions the lifecycle state to {@code RESUMING}. If called
      * from an external thread while the execution thread is parked or idling, it will automatically
@@ -192,14 +192,14 @@ public abstract class Application {
     }
 
     /**
-     * Initiates a pause sequence for the application.
+     * Initiates a pause sequence for the node.
      *
-     * <p>If the application is already inoperable, pausing, or fully paused, this call returns
-     * immediately without taking any action.
+     * <p>If the node is already inoperable, pausing, or fully paused, this call returns immediately
+     * without taking any action.
      *
      * <p>When executed, this method transitions the lifecycle state to {@code PAUSING}. If called
      * from an external thread while the execution thread is parked or idling, it will automatically
-     * trigger a wakeup signal to force the application thread to process the pause state transition
+     * trigger a wakeup signal to force the node thread to process the pause state transition
      * immediately.
      */
     public void pause() {
@@ -209,17 +209,17 @@ public abstract class Application {
     }
 
     /**
-     * Waits for the application's execution thread to terminate.
+     * Waits for the node's execution thread to terminate.
      *
-     * <p>This method blocks the calling thread until the dedicated application thread finishes its
+     * <p>This method blocks the calling thread until the dedicated node thread finishes its
      * execution cycle and shuts down completely.
      *
-     * <p>To prevent deadlocks, this call returns immediately without taking action if the
-     * application thread has not been started (is {@code null}) or if the method is called from
-     * within the application thread itself.
+     * <p>To prevent deadlocks, this call returns immediately without taking action if the node
+     * thread has not been started (is {@code null}) or if the method is called from within the node
+     * thread itself.
      *
-     * @throws InterruptedException if the calling thread is interrupted while waiting for the
-     *     application thread to finish
+     * @throws InterruptedException if the calling thread is interrupted while waiting for the node
+     *     thread to finish
      */
     public void join() throws InterruptedException {
         if (thread == null || isOnThread()) return;
@@ -227,10 +227,10 @@ public abstract class Application {
     }
 
     /**
-     * Starts the application asynchronously in a new dedicated thread.
+     * Starts the node asynchronously in a new dedicated thread.
      *
-     * <p>If the application is already running or active, this call returns immediately without
-     * taking any action.
+     * <p>If the node is already running or active, this call returns immediately without taking any
+     * action.
      *
      * <p>When executed, this method provisions a separate thread to drive the core lifecycle loop.
      * The spawned thread executes the exact same underlying hook sequence as {@link #run()}:
@@ -244,12 +244,12 @@ public abstract class Application {
      *       hook and sets the final state to {@code SHUTDOWN}.
      * </ul>
      *
-     * <p>The executing thread also handles custom exception management, thread naming, global
-     * application registry tracking, and guarantees resource cleanup upon exit.
+     * <p>The executing thread also handles custom exception management, thread naming, global node
+     * registry tracking, and guarantees resource cleanup upon exit.
      */
     public void start() {
         if (state.isAlive()) return;
-        Corexie.addApplication(this);
+        Corexie.addNode(this);
         thread =
                 new Thread(
                         () -> {
@@ -257,24 +257,24 @@ public abstract class Application {
                                     .setUncaughtExceptionHandler(uncaughtExceptionHandler);
                             _run();
                             thread = null;
-                            Corexie.removeApplication(this);
+                            Corexie.removeNode(this);
                         },
                         formatThreadName(getName()));
         thread.start();
     }
 
     /**
-     * Executes the application's lifecycle orchestration on the current thread.
+     * Executes the node's lifecycle orchestration on the current thread.
      *
-     * <p>If the application is already running or active, this call returns immediately without
-     * taking action.
+     * <p>If the node is already running or active, this call returns immediately without taking
+     * action.
      *
      * <p>When executed, this method sets up the environment, runs the state machine loop, and
      * guarantees final cleanup. The execution sequence flows as follows:
      *
      * <ul>
-     *   <li><b>Setup:</b> Registers the application globally, captures the active thread context,
-     *       and configures custom exception handling and thread naming.
+     *   <li><b>Setup:</b> Registers the node globally, captures the active thread context, and
+     *       configures custom exception handling and thread naming.
      *   <li><b>Startup Phase:</b> Transitions to {@code STARTING} and fires the {@code onStartup()}
      *       hook.
      *   <li><b>Main Loop Phase:</b> Transitions to {@code RUNNING}. Continuously processes
@@ -283,12 +283,12 @@ public abstract class Application {
      *   <li><b>Shutdown Phase:</b> Upon receiving a termination signal, executes the {@code
      *       onShutdown()} hook and sets the final state to {@code SHUTDOWN}.
      *   <li><b>Teardown:</b> Restores the original thread name, removes exception handlers, clears
-     *       thread references, and unregisters the application.
+     *       thread references, and unregisters the node.
      * </ul>
      */
     public void run() {
         if (state.isAlive()) return;
-        Corexie.addApplication(this);
+        Corexie.addNode(this);
         thread = Thread.currentThread();
         String oldThreadName = thread.getName();
         thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
@@ -297,19 +297,19 @@ public abstract class Application {
         thread.setName(oldThreadName);
         thread.setUncaughtExceptionHandler(null);
         thread = null;
-        Corexie.removeApplication(this);
+        Corexie.removeNode(this);
     }
 
     /**
-     * Places the application thread into a timed parking state.
+     * Places the node thread into a timed parking state.
      *
-     * <p>This method manages the temporary transition of the application's lifecycle state to
-     * {@code SLEEPING} if it is not currently in a pausing state. It ensures that the state is
-     * safely restored to its previous phase upon awakening, provided it is still in the {@code
-     * SLEEPING} state.
+     * <p>This method manages the temporary transition of the node's lifecycle state to {@code
+     * SLEEPING} if it is not currently in a pausing state. It ensures that the state is safely
+     * restored to its previous phase upon awakening, provided it is still in the {@code SLEEPING}
+     * state.
      *
-     * <p>The sleep operation is skipped entirely, and {@code 0} is returned, if the application is
-     * in an inoperable state or if the requested timeout duration is zero or negative.
+     * <p>The sleep operation is skipped entirely, and {@code 0} is returned, if the node is in an
+     * inoperable state or if the requested timeout duration is zero or negative.
      *
      * @param timeout the maximum duration to park the thread in nanoseconds
      * @return the remaining unspent timeout duration in nanoseconds if awakened early, or {@code 0}
@@ -331,13 +331,13 @@ public abstract class Application {
     }
 
     /**
-     * Signals and wakes up the application execution thread if it is currently parked or idle.
+     * Signals and wakes up the node execution thread if it is currently parked or idle.
      *
      * <p>This method can only be legally invoked from an external thread context. It evaluates
-     * whether the application is in an inactive phase, and resets its parking state via {@link
+     * whether the node is in an inactive phase, and resets its parking state via {@link
      * Threads#unpark(Thread)}.
      *
-     * @throws WrongThreadException if called from within the internal application thread context
+     * @throws WrongThreadException if called from within the internal node thread context
      */
     protected void wakeup() {
         ensureOffThread();
@@ -347,7 +347,7 @@ public abstract class Application {
     }
 
     /**
-     * Invoked exactly once when the application starts up.
+     * Invoked exactly once when the node starts up.
      *
      * <p>This hook is called before the main execution loop begins, immediately after the lifecycle
      * state transitions to {@code STARTING}. Use this method to allocate resources, open
@@ -359,10 +359,10 @@ public abstract class Application {
     protected abstract void onStartup() throws Exception;
 
     /**
-     * Invoked repeatedly as the core processing logic of the application loop.
+     * Invoked repeatedly as the core processing logic of the node loop.
      *
-     * <p>This hook is called during every cycle iteration while the application state remains
-     * {@code RUNNING}. Put your primary runtime work or business logic here.
+     * <p>This hook is called during every cycle iteration while the node state remains {@code
+     * RUNNING}. Put your primary runtime work or business logic here.
      *
      * @throws Exception if an error occurs during execution, which routes the error through the
      *     lifecycle exception handling mechanism
@@ -370,10 +370,10 @@ public abstract class Application {
     protected abstract void onExecute() throws Exception;
 
     /**
-     * Invoked when the application transitions into a paused state.
+     * Invoked when the node transitions into a paused state.
      *
      * <p>This hook is called when the state is set to {@code PAUSING}. Use this method to safely
-     * suspend active background operations or hold processing until the application is resumed.
+     * suspend active background operations or hold processing until the node is resumed.
      *
      * @throws Exception if the pausing routine fails, which routes the error through the lifecycle
      *     exception handling mechanism
@@ -381,7 +381,7 @@ public abstract class Application {
     protected abstract void onPause() throws Exception;
 
     /**
-     * Invoked when the application recovers from a paused state.
+     * Invoked when the node recovers from a paused state.
      *
      * <p>This hook is called when the state is set to {@code RESUMING}. Use this method to restore
      * operations or reload variables that were suspended during the pause phase.
@@ -392,11 +392,11 @@ public abstract class Application {
     protected abstract void onResume() throws Exception;
 
     /**
-     * Invoked exactly once when the application receives a termination signal.
+     * Invoked exactly once when the node receives a termination signal.
      *
-     * <p>This hook is called when the state changes to {@code SHUTTING}, right before the
-     * application loop terminates permanently. Use this method to release resources, flush buffers,
-     * close files, or perform graceful teardown.
+     * <p>This hook is called when the state changes to {@code SHUTTING}, right before the node loop
+     * terminates permanently. Use this method to release resources, flush buffers, close files, or
+     * perform graceful teardown.
      *
      * @throws Exception if the cleanup routine fails, which routes the error through the lifecycle
      *     exception handling mechanism
@@ -404,7 +404,7 @@ public abstract class Application {
     protected abstract void onShutdown() throws Exception;
 
     /**
-     * Invoked at the end of a running iteration before the application thread idles.
+     * Invoked at the end of a running iteration before the node thread idles.
      *
      * <p>This hook is called when the state transitions to {@code IDLE}, occurring right before the
      * thread parks for its configured cycle interval.
@@ -417,21 +417,21 @@ public abstract class Application {
     /**
      * Invoked whenever an unhandled exception is caught during any lifecycle hook execution.
      *
-     * <p>This callback acts as an interception point for application-level logging or metrics
-     * collection before the lifecycle manager processes the failure. If this handler itself throws
-     * an exception, the error is caught and logged to prevent interrupting the framework's recovery
+     * <p>This callback acts as an interception point for node-level logging or metrics collection
+     * before the lifecycle manager processes the failure. If this handler itself throws an
+     * exception, the error is caught and logged to prevent interrupting the framework's recovery
      * routine.
      *
      * <p><b>Note on Lifecycle Impact:</b> Except during startup or shutdown, any exception routed
      * here is treated as unrecoverable. The framework will automatically trigger a fallback to
-     * {@link #onShutdown()} and move the final application state to {@code FAILED}.
+     * {@link #onShutdown()} and move the final node state to {@code FAILED}.
      *
      * @param throwable the non-null exception or error captured by the lifecycle manager
      */
     protected abstract void onException(@NotNull Throwable throwable);
 
     /**
-     * Asserts that the current execution is occurring on the application's target thread.
+     * Asserts that the current execution is occurring on the node's target thread.
      *
      * <p>This check utilizes Java's language-level assertion mechanism and is only active if
      * assertions are enabled via the {@code -ea} JVM option.
@@ -444,7 +444,7 @@ public abstract class Application {
     }
 
     /**
-     * Asserts that the current execution is NOT occurring on the application's target thread.
+     * Asserts that the current execution is NOT occurring on the node's target thread.
      *
      * <p>This check utilizes Java's language-level assertion mechanism and is only active if
      * assertions are enabled via the {@code -ea} JVM option.
@@ -457,7 +457,7 @@ public abstract class Application {
     }
 
     /**
-     * Ensures that the current execution is occurring on the application's target thread.
+     * Ensures that the current execution is occurring on the node's target thread.
      *
      * <p>Unlike assertions, this verification is always active in production environments.
      *
@@ -470,7 +470,7 @@ public abstract class Application {
     }
 
     /**
-     * Ensures that the current execution is NOT occurring on the application's target thread.
+     * Ensures that the current execution is NOT occurring on the node's target thread.
      *
      * <p>Unlike assertions, this verification is always active in production environments.
      *
@@ -483,12 +483,12 @@ public abstract class Application {
     }
 
     /**
-     * Checks if the current executing thread is the application's dedicated lifecycle thread.
+     * Checks if the current executing thread is the node's dedicated lifecycle thread.
      *
      * <p>This method verifies that the calling context matches the internal thread driving the
-     * application's runtime cycle.
+     * node's runtime cycle.
      *
-     * @return {@code true} if called from the application thread, {@code false} otherwise
+     * @return {@code true} if called from the node thread, {@code false} otherwise
      */
     protected boolean isOnThread() {
         assert thread != null;
@@ -496,11 +496,11 @@ public abstract class Application {
     }
 
     /**
-     * Checks if the current executing thread is different from the application's dedicated
-     * lifecycle thread.
+     * Checks if the current executing thread is different from the node's dedicated lifecycle
+     * thread.
      *
      * <p>This method verifies that the calling context is external to the internal thread driving
-     * the application's runtime cycle.
+     * the node's runtime cycle.
      *
      * @return {@code true} if called from an external thread, {@code false} otherwise
      */
@@ -594,12 +594,12 @@ public abstract class Application {
         if (state == CycleState.SHUTTING) {
             getLogger()
                     .error(
-                            "Failed to complete [onShutdown]. The application will force close to avoid an infinite error loop.",
+                            "Failed to complete [onShutdown]. The node will force close to avoid an infinite error loop.",
                             e);
         } else if (state == CycleState.STARTING) {
             getLogger()
                     .error(
-                            "The application failed during [onStartup]. Startup process has been cancelled.",
+                            "The node failed during [onStartup]. Startup process has been cancelled.",
                             e);
         } else {
             String action =
@@ -616,7 +616,7 @@ public abstract class Application {
 
             getLogger()
                     .error(
-                            "An unrecoverable error occurred during [{}]. Closing the application...",
+                            "An unrecoverable error occurred during [{}]. Closing the node...",
                             action,
                             e);
             try {
@@ -624,7 +624,7 @@ public abstract class Application {
             } catch (Exception shutdownEx) {
                 getLogger()
                         .error(
-                                "A follow-up error occurred while trying to close the application during [{}].",
+                                "A follow-up error occurred while trying to close the node during [{}].",
                                 action,
                                 shutdownEx);
             }
@@ -635,7 +635,7 @@ public abstract class Application {
 
     private @NotNull Thread.UncaughtExceptionHandler createUncaughtExceptionHandler() {
         return (t, e) -> {
-            logger.error("Internal fatal error. The application is stopping...", e);
+            logger.error("Internal fatal error. The node is stopping...", e);
             state = CycleState.FAILED;
         };
     }
@@ -651,7 +651,7 @@ public abstract class Application {
 
     private static @NotNull CoreNodeMeta loadMeta(@NotNull String id) {
         String filename = "/corexie/node/" + id + ".json";
-        try (InputStream inputStream = Application.class.getResourceAsStream(filename)) {
+        try (InputStream inputStream = CoreNode.class.getResourceAsStream(filename)) {
             if (inputStream == null) {
                 throw new FileNotFoundException(
                         "Resource file not found on classpath: " + filename);
