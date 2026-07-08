@@ -46,8 +46,9 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>tools.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.github.nullumie.corexie</groupId>
+      <artifactId>corexie-json</artifactId>
+      <version>${revision}${changelist}</version>
     </dependency>
   </dependencies>
 

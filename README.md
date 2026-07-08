@@ -25,7 +25,7 @@ By extending a single abstract class, Corexie eliminates application boilerplate
 
 This project uses a split-licensing strategy:
 
-* **Core Module (`corexie-core`):** Licensed under **LGPL-3.0-only**. You can link this library (via Maven, Gradle, etc.) into proprietary applications without being required to release your application's source code. Any modifications to the library itself must be shared under the same license.
+* **Core and Json Modules (`corexie-core`, `corexie-json`):** Licensed under **LGPL-3.0-only**. You can link this library (via Maven, Gradle, etc.) into proprietary applications without being required to release your application's source code. Any modifications to the library itself must be shared under the same license.
 * **Examples & Snippets (`corexie-example`):** Licensed under **MIT**. All code in the `example` module and documentation snippets can be used, copied, and modified without restriction.
 
 See the [LICENSE](LICENSE.md) file for full details and legal texts.

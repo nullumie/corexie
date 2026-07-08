@@ -8,7 +8,7 @@ This project follows a split-licensing strategy to balance the protection of the
 
 ---
 
-## Core Module (corexie-core)
+## Core and Json Modules (corexie-core, corexie-json)
 
 The core module and its compiled artifacts are licensed under the **GNU Lesser General Public License v3.0 only (LGPL-3.0-only)**.
 

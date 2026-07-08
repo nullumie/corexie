@@ -37,6 +37,7 @@
     </license>
   </licenses>
   <modules>
+    <module>json</module>
     <module>core</module>
     <module>example</module>
   </modules>

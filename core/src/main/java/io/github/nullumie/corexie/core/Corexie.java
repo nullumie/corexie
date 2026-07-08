@@ -18,7 +18,7 @@
 package io.github.nullumie.corexie.core;
 
 import com.github.zafarkhaja.semver.Version;
-import io.github.nullumie.corexie.core.json.Json;
+import io.github.nullumie.corexie.json.Json;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;

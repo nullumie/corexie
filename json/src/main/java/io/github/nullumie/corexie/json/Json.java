@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library. If not, see <https://www.gnu.org/licenses/>.
  */
-package io.github.nullumie.corexie.core.json;
+package io.github.nullumie.corexie.json;
 
-import io.github.nullumie.corexie.core.json.module.SemVerModule;
+import io.github.nullumie.corexie.json.module.SemVerModule;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
@@ -32,7 +32,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>This class provides a centralized management layer for named JSON mappers. It initializes with
  * a pre-configured {@code "default"} instance that automatically registers all custom Jackson
- * modules from the {@code io.github.nullumie.corexie.core.json.module} package.
+ * modules from the {@code io.github.nullumie.corexie.json.module} package.
  *
  * @see JsonMapper
  */
