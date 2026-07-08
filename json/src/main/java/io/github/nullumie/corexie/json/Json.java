@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -44,7 +45,12 @@ public final class Json {
     static {
         instances.put(
                 DEFAULT_NAME,
-                new Json(DEFAULT_NAME, JsonMapper.builder().addModule(new SemVerModule()).build()));
+                new Json(
+                        DEFAULT_NAME,
+                        JsonMapper.builder()
+                                .enable(SerializationFeature.INDENT_OUTPUT)
+                                .addModule(new SemVerModule())
+                                .build()));
     }
 
     private final @NotNull String name;
