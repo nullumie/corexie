@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 /**
  * An abstract base class that encapsulates a high-performance, single-threaded lifecycle loop for
@@ -65,6 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class CoreNode {
 
+    private final @NotNull String id;
     private final @NotNull String name;
     private final @NotNull Version version;
     private @Nullable Thread thread;
@@ -75,14 +77,18 @@ public abstract class CoreNode {
     private volatile @NotNull CycleState state = CycleState.INITIALIZED;
 
     /**
-     * Constructs a new {@code CoreNode} instance with a dedicated identity, version, and cycle
-     * throttling interval.
+     * Constructs a new {@code CoreNode} instance by loading its metadata from a JSON configuration
+     * file located on the classpath using the provided identifier.
      *
-     * @param id the unique identifier id of this node, used for logging and thread naming
-     * @throws IllegalArgumentException if the provided interval is negative
+     * @param id the unique identifier of this node, used to resolve the configuration file path,
+     *     for logging, and thread naming
+     * @throws UncheckedIOException if an I/O error occurs or the configuration file is not found on
+     *     the classpath
+     * @throws IllegalArgumentException if the loaded cycle throttling interval is negative
      */
     protected CoreNode(@NotNull String id) {
         CoreNodeMeta meta = loadMeta(id);
+        this.id = id.toLowerCase();
         this.name = meta.getName();
         this.version = meta.getVersion();
         this.interval = validateInterval(meta.getInterval());
@@ -91,43 +97,72 @@ public abstract class CoreNode {
     }
 
     /**
-     * Retrieves the unique identifier name of this node.
+     * Constructs a new {@code CoreNode} instance with an explicitly specified identity, name,
+     * version, and cycle throttling interval.
      *
-     * @return the non-null {@link String} representing the node name
+     * @param id the unique identifier of this node, used for logging and thread naming
+     * @param name the display or system name of this node used to initialize the logger
+     * @param version the current version configuration of this node
+     * @param interval the cycle throttling interval in nanoseconds
+     * @throws IllegalArgumentException if the provided interval in nanoseconds is negative
+     */
+    protected CoreNode(
+            @NotNull String id, @NotNull String name, @NotNull Version version, long interval) {
+        this.id = id.toLowerCase();
+        this.name = name;
+        this.version = version;
+        this.interval = validateInterval(interval);
+        this.logger = LoggerFactory.getLogger(this.name);
+        this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
+    }
+
+    /**
+     * Returns the unique identifier of this node.
+     *
+     * @return the node identifier
+     */
+    public @NotNull String getId() {
+        return id;
+    }
+
+    /**
+     * Returns the name of this node.
+     *
+     * @return the node name
      */
     public @NotNull String getName() {
         return name;
     }
 
     /**
-     * Retrieves the current semantic version of this node.
+     * Returns the current semantic version of this node.
      *
-     * @return the non-null {@link Version} specifying the node version
+     * @return the node version
      */
     public @NotNull Version getVersion() {
         return version;
     }
 
     /**
-     * Retrieves the primary logging instance assigned to this node.
+     * Returns the primary logging instance assigned to this node.
      *
-     * @return the non-null {@link Logger} configured for this node context
+     * @return the logger configured for this node context
      */
     public @NotNull Logger getLogger() {
         return logger;
     }
 
     /**
-     * Retrieves the current execution lifecycle state of the node.
+     * Returns the current execution lifecycle state of the node.
      *
-     * @return the non-null {@link CycleState} representing the active lifecycle phase
+     * @return the active lifecycle phase
      */
     public @NotNull CycleState getState() {
         return state;
     }
 
     /**
-     * Retrieves the current execution cycle interval of the node in nanoseconds.
+     * Returns the current execution cycle interval of the node in nanoseconds.
      *
      * @return the current cycle interval in nanoseconds
      */
@@ -651,15 +686,19 @@ public abstract class CoreNode {
 
     private static @NotNull CoreNodeMeta loadMeta(@NotNull String id) {
         String filename = "/corexie/node/" + id + ".json";
-        try (InputStream inputStream = CoreNode.class.getResourceAsStream(filename)) {
-            if (inputStream == null) {
-                throw new FileNotFoundException(
-                        "Resource file not found on classpath: " + filename);
-            }
-            return Json.get().read(inputStream, CoreNodeMeta.class);
-        } catch (IOException e) {
+        InputStream rawStream = CoreNode.class.getResourceAsStream(filename);
+        if (rawStream == null) {
             throw new UncheckedIOException(
-                    "Failed to load core node metadata from: " + filename, e);
+                    "Core node configuration file not found on classpath: " + filename,
+                    new FileNotFoundException("Resource path: " + filename));
+        }
+        try (InputStream inputStream = rawStream) {
+            return Json.get().read(inputStream, CoreNodeMeta.class);
+        } catch (IOException | JacksonException e) {
+            IOException ioCause =
+                    (e instanceof IOException ioEx) ? ioEx : new IOException(e.getMessage(), e);
+            throw new UncheckedIOException(
+                    "Failed to read or parse core node metadata from: " + filename, ioCause);
         }
     }
 }

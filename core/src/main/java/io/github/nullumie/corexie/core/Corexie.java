@@ -98,16 +98,16 @@ public final class Corexie {
         LogManager.shutdown();
     }
 
-    public static Optional<CoreNode> getNode(@NotNull String name) {
-        return Optional.ofNullable(nodes.get(name));
+    public static Optional<CoreNode> getNode(@NotNull String id) {
+        return Optional.ofNullable(nodes.get(id.toLowerCase()));
     }
 
     static void addNode(@NotNull CoreNode coreNode) {
-        if (nodes.putIfAbsent(coreNode.getName(), coreNode) != null) {
+        if (nodes.putIfAbsent(coreNode.getId(), coreNode) != null) {
             throw new IllegalStateException(
-                    String.format(
-                            "Failed to add application. An entry with name '%s' already exists in the registry.",
-                            coreNode.getName()));
+                    "Failed to add core node: A node with identifier '"
+                            + coreNode.getId()
+                            + "' already exists.");
         }
     }
 
