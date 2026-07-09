@@ -625,46 +625,21 @@ public abstract class CoreNode {
         } catch (Exception userEx) {
             getLogger().error("The onException handler itself threw an exception.", userEx);
         }
-
-        if (state == CycleState.SHUTTING) {
-            getLogger()
-                    .error(
-                            "Failed to complete [onShutdown]. The node will force close to avoid an infinite error loop.",
-                            e);
-        } else if (state == CycleState.STARTING) {
-            getLogger()
-                    .error(
-                            "The node failed during [onStartup]. Startup process has been cancelled.",
-                            e);
-        } else {
-            String action =
-                    "on"
-                            + switch (state) {
-                                case RUNNING -> "Execute";
-                                case PAUSING -> "Pause";
-                                case RESUMING -> "Resume";
-                                case IDLE -> "Idle";
-                                default ->
-                                        throw new IllegalStateException(
-                                                "Unexpected lifecycle state: " + state);
-                            };
-
-            getLogger()
-                    .error(
-                            "An unrecoverable error occurred during [{}]. Closing the node...",
-                            action,
-                            e);
+        getLogger()
+                .error(
+                        "An unrecoverable error occurred while the node was in the {} state.",
+                        state,
+                        e);
+        if (state != CycleState.STARTING && state != CycleState.SHUTTING) {
             try {
                 onShutdown();
             } catch (Exception shutdownEx) {
                 getLogger()
                         .error(
-                                "A follow-up error occurred while trying to close the node during [{}].",
-                                action,
+                                "A follow-up error occurred while executing onShutdown() during fallback cleanup.",
                                 shutdownEx);
             }
         }
-
         state = CycleState.FAILED;
     }
 
