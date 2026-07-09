@@ -3,8 +3,8 @@
     <Appenders>
         <Console name="SysOut" target="SYSTEM_OUT">
             <PatternLayout
-                    pattern="%d{HH:mm:ss.SSS} - [%t/%level] - %style{(%logger{36})}{blue,bold} - %highlight{%msg}{ERROR=red, WARN=yellow, INFO=default, DEBUG=default}%n"
-                    disableAnsi="false"/>
+                    pattern="%d{HH:mm:ss.SSS} - [%t/%level] - %style{(%logger{36})}{blue,bold} - %highlight{%msg%n%ex}{ERROR=red, WARN=yellow, INFO=default, DEBUG=default}"
+                           disableAnsi="false"/>
         </Console>
 
         <Routing name="Routing">
