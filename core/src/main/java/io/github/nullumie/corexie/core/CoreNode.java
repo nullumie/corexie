@@ -294,7 +294,7 @@ public abstract class CoreNode {
                             thread = null;
                             Corexie.removeNode(this);
                         },
-                        formatThreadName(getName()));
+                        formatThreadName(id));
         thread.start();
     }
 
@@ -327,7 +327,7 @@ public abstract class CoreNode {
         thread = Thread.currentThread();
         String oldThreadName = thread.getName();
         thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-        thread.setName(formatThreadName(getName()));
+        thread.setName(formatThreadName(id));
         _run();
         thread.setName(oldThreadName);
         thread.setUncaughtExceptionHandler(null);
@@ -675,8 +675,8 @@ public abstract class CoreNode {
         };
     }
 
-    private static @NotNull String formatThreadName(@NotNull String name) {
-        return name.toLowerCase() + "-main";
+    private static @NotNull String formatThreadName(@NotNull String id) {
+        return id + "-main";
     }
 
     private static long validateInterval(long interval) {
