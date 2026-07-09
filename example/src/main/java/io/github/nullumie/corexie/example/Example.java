@@ -94,6 +94,7 @@ public final class Example extends CoreNode {
 
     private void printInfo() {
         getLogger().info("------------------------------");
+        getLogger().info("Id: {}", getId());
         getLogger().info("Name: {}", getName());
         getLogger().info("Version: {}", getVersion());
         getLogger().info("LogPath: {}", Corexie.getLogPath());
