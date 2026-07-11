@@ -32,6 +32,18 @@ public final class Threads {
     private Threads() {}
 
     /**
+     * Validates that the specified timeout duration is non-negative.
+     *
+     * @param timeout the timeout duration to validate, in nanoseconds
+     * @return the validated timeout value if it is greater than or equal to zero
+     * @throws IllegalArgumentException if the timeout value is negative
+     */
+    public static long validateTimeout(long timeout) {
+        if (timeout >= 0) return timeout;
+        throw new IllegalArgumentException("Timeout duration must not be negative: " + timeout);
+    }
+
+    /**
      * Disables the current thread for thread scheduling purposes for up to the remaining timeout
      * duration.
      *

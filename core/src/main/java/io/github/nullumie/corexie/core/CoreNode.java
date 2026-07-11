@@ -91,7 +91,7 @@ public abstract class CoreNode {
         this.id = id.toLowerCase();
         this.name = meta.getName();
         this.version = meta.getVersion();
-        this.interval = validateInterval(meta.getInterval());
+        this.interval = Threads.validateTimeout(meta.getInterval());
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
     }
@@ -111,7 +111,7 @@ public abstract class CoreNode {
         this.id = id.toLowerCase();
         this.name = name;
         this.version = version;
-        this.interval = validateInterval(interval);
+        this.interval = Threads.validateTimeout(interval);
         this.logger = LoggerFactory.getLogger(this.name);
         this.uncaughtExceptionHandler = createUncaughtExceptionHandler();
     }
@@ -184,7 +184,7 @@ public abstract class CoreNode {
      * @throws IllegalArgumentException if the provided interval is invalid
      */
     public long setInterval(long interval) {
-        validateInterval(interval);
+        Threads.validateTimeout(interval);
         if (interval == this.interval) return this.interval;
         long oldInterval = this.interval;
         this.interval = interval;
@@ -652,11 +652,6 @@ public abstract class CoreNode {
 
     private static @NotNull String formatThreadName(@NotNull String id) {
         return id + "-main";
-    }
-
-    private static long validateInterval(long interval) {
-        if (interval >= 0) return interval;
-        throw new IllegalArgumentException("Interval must not be negative: " + interval);
     }
 
     private static @NotNull CoreNodeMeta loadMeta(@NotNull String id) {
