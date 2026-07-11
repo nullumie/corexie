@@ -22,21 +22,23 @@ import io.github.nullumie.corexie.json.Json;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
+import tools.jackson.core.JacksonException;
 
 public final class Corexie {
 
-    private static final @NotNull String META_FILE_NAME = "corexie.json";
+    private static final @NotNull String META_FILE_NAME = "/corexie.json";
     private static final @NotNull String LOG_PATH_PROPERTY = "corexie.log.path";
     private static final @NotNull String LOG_MODE_PROPERTY = "corexie.log.mode";
 
     private static final ConcurrentHashMap<String, CoreNode> nodes = new ConcurrentHashMap<>();
 
-    private static @NotNull String name;
-    private static @NotNull Version version;
+    private static String name;
+    private static Version version;
 
     private Corexie() {}
 
@@ -62,24 +64,9 @@ public final class Corexie {
     }
 
     public static void initialize(@NotNull String logPath, @NotNull LogMode logMode) {
-        try (InputStream inputStream = Corexie.class.getResourceAsStream("/" + META_FILE_NAME)) {
-            if (inputStream == null) {
-                throw new FileNotFoundException(
-                        String.format(
-                                "Critical metadata resource file '%s' could not be found in the classpath relative to class %s.",
-                                META_FILE_NAME, Corexie.class.getName()));
-            }
-            CoreMeta meta = Json.get().read(inputStream, CoreMeta.class);
-            name = meta.getName();
-            version = meta.getVersion();
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    String.format(
-                            "Failed to initialize Corexie framework. Resource loading failed for metadata file: '%s'.",
-                            META_FILE_NAME),
-                    e);
-        }
-
+        CoreMeta meta = loadMeta();
+        name = meta.getName();
+        version = meta.getVersion();
         System.setProperty("log4j.shutdownHookEnabled", "false");
         setupLog(logPath, logMode);
         setupShutdownHook();
@@ -123,5 +110,22 @@ public final class Corexie {
     private static void setupShutdownHook() {
         Thread shutdownHookThread = new Thread(Corexie::shutdown);
         Runtime.getRuntime().addShutdownHook(shutdownHookThread);
+    }
+
+    private static @NotNull CoreMeta loadMeta() {
+        InputStream rawStream = CoreNode.class.getResourceAsStream(META_FILE_NAME);
+        if (rawStream == null) {
+            throw new UncheckedIOException(
+                    "Metadata file not found on classpath: " + META_FILE_NAME,
+                    new FileNotFoundException("Resource path: " + META_FILE_NAME));
+        }
+        try (InputStream inputStream = rawStream) {
+            return Json.get().read(inputStream, CoreNodeMeta.class);
+        } catch (IOException | JacksonException e) {
+            IOException ioCause =
+                    (e instanceof IOException ioEx) ? ioEx : new IOException(e.getMessage(), e);
+            throw new UncheckedIOException(
+                    "Failed to read or parse metadata from: " + META_FILE_NAME, ioCause);
+        }
     }
 }
